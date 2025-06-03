@@ -22,5 +22,9 @@ The dockerfile exposes jupyter lab to the port 8888. Therefore, you can launch j
 
 from inside the sipi-data-analysis project folder. In your command line/terminal you should now see jupyter running. In order to open jupyter lab in your browser just copy-paste the URL including the access token to a new browser tab.
 
+### How to stop running your docker
+1. In your command line, run `docker ps` to list all running docker containers. Copy the hash value in the NAME column of the container you want to stop.
+2. Execute `docker stop [hash-value]` in your command line.
+
 ## References & Credits
 We do not have ownership of the raw data used in this project. The WISE data is publically accessible [here](https://springernature.figshare.com/articles/dataset/A_comprehensive_Beyond-GDP_database_to_accelerate_wellbeing_inclusion_and_sustainability_research/26970415?file=49085821) and credits go to Liu, Wang, Behrens, et al. (see Liu, Kedi; Wang, Ranran; Behrens, Paul; Schrijver, Inge; Jansen, Annegeke; Rum, Irlan; et al. (2024). A comprehensive Beyond-GDP database to accelerate wellbeing, inclusion, and sustainability research. figshare. Dataset. [DOI](https://doi.org/10.6084/m9.figshare.26970415.v1)). The HDR data from the UNDP can be openly accessed [here](https://hdr.undp.org/data-center/documentation-and-downloads).
