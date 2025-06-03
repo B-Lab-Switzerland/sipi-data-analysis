@@ -1,7 +1,9 @@
 # Project: SIPI | Subproject: Analysis of beyond-GDP and beyond-profit metrics
 
 ## Introduction
+The Swiss Impact & Prosperity Initiative (SIPI) is reimagining success for Switzerland. It goes beyond GDP and traditional business metrics, aligning economic vitality with societal well-being, ecological integrity, and long-term resilience. SIPI's vision is a Switzerland where prosperity is measured not only by financial growth, but by the resilience of communities, the health of ecosystems, and the inclusive opportunities that drive long-term value creation.
 
+In this repository the code for analysis of existing beyond-GDP metrics is developed. The goal is to extract a small number of highly expressive, mutually minimally correlated metrics.
 
 ## How to Build the Docker Image
 
