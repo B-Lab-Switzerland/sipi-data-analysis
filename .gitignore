@@ -1,4 +1,9 @@
 # Automatically generated files
+.Trash*
+*/**/.Trash*
 *checkpoints*
 */**/.DS_Store
 .DS_Store
+
+# Manually created files
+notebooks/Country_Level/old_depricated/
