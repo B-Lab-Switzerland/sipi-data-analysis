@@ -4,6 +4,6 @@
 *checkpoints*
 */**/.DS_Store
 .DS_Store
-
+*/**/__MACOSX
 # Manually created files
 notebooks/Country_Level/old_depricated/
