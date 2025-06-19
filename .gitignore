@@ -5,5 +5,9 @@
 */**/.DS_Store
 .DS_Store
 */**/__MACOSX
+
 # Manually created files
-notebooks/Country_Level/old_depricated/
+*/**/notebooks/old_depricated/
+*/**/*.numbers
+WISE_Analysis/results/ch_indices_between_1995_and_2020.csv
+WISE_Analysis/results/top_crosscorr_across_capitals.xlsx
