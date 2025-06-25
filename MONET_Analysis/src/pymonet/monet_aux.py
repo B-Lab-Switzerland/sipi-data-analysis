@@ -16,10 +16,17 @@ class MLStripper(HTMLParser):
         return self.text.getvalue()
 
 def strip_tags(html):
+    """
+    Strips HTML tags from a string.
+    """
     s = MLStripper()
     s.feed(html)
     return s.get_data()
 
 def page_exists(url):
+    """
+    Checks if the webpages pointed to by an URL
+    actually exists.
+    """
     response = requests.head(url, allow_redirects=True, timeout=10)
     return response.status_code == 200
