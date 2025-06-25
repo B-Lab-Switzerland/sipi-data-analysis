@@ -5,6 +5,8 @@
 */**/.DS_Store
 .DS_Store
 */**/__MACOSX
+*/**/*egg*
+*/**/build
 
 # Manually created files
 */**/notebooks/old_depricated/
