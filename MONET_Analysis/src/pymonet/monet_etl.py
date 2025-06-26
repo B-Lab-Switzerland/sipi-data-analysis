@@ -210,3 +210,52 @@ class ETL_MonetIndicatorInfo(ETL):
         # for each data file related to the current indicator in question.
         # Transform this list into a pandas.DataFrame.
         self.df = pd.DataFrame(data_file_info_list)
+
+class ETL_DataFile(object):
+    """
+    """
+    def __init__(self, metainfo: pd.Series):
+        self.metainfo = metainfo
+        self.raw_spreadsheet = None
+        self.processed_data = None
+
+    def extract(self):
+        """
+        """
+        self.raw_spreadsheet = pd.read_excel(self.metainfo["Data_url"], sheet_name=None)
+        
+    def transform(self):
+        """
+        """
+        sheetnames = list(self.raw_spreadsheet.keys())
+    
+        table = spreadsheet[sheetnames[0]]
+        name = table.iloc[0,0]
+        desc = table.iloc[1,0]
+        if desc is np.nan:
+            column_headers_row = 2
+        else:
+            column_headers_row = 3
+        
+        col_names = [v for v in table.iloc[column_headers_row,:].values if (v is not np.nan and len(v.strip())>0)]
+        
+        df = table.iloc[column_headers_row+1:,:]
+        
+        col_rename_dict = dict()
+        col_rename_dict[df.columns[0]] = "Year"
+        for i in range(1, len(col_names)+1):
+            col_rename_dict[df.columns[i]] = col_names[i-1]
+        df = df.rename(col_rename_dict, axis=1)
+        df = df.set_index("Year")
+        
+        for cntr, idx in enumerate(df.index):
+            if idx!=idx:
+                stop = cntr
+                break
+        
+        remark = " ".join([str(txt) for txt in df.index[stop:] if txt==txt])
+        df = df.iloc[:stop,:]
+        df.columns.name = name
+        df
+    
+        self.processed_data =  {"table": df, "desc": desc, "remark": remark}

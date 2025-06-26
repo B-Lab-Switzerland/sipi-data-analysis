@@ -83,8 +83,8 @@ class IndicatorTableLoader(object):
         Reads MONET2030 indicator table into memory.
     
         Checks if the table is already written to disk in which case the
-        data is loaded into memory from disk by calling the _read_indicator_table.
-        Otherwise the function _scrape_indicator_table is called in which
+        data is loaded into memory from disk by calling the _read_table
+        function. Otherwise the function _scrape_table is called in which
         case the data is scraped from the internet.
 
         Parameters
@@ -225,6 +225,26 @@ class MetaInfoTableLoader(object):
 
 class DataFileLoader(object):
     """
+    Class handling loading the actual MONET2030
+    indicator data into memory.
+
+    Parameters
+    ----------
+    metatable : pd.DataFrame
+        Dataframe containing metainformation about
+        MONET2030 indicators together with the URLs
+        pointing to the actual data files.
+
+    raw_data_path : str
+        Path to directory in which the raw data files 
+        are stored exactly as they were downloaded.
+        These files are not processed at all.
+
+    processed_data_path : str
+        Path to directory in which the processed
+        data files are stored. They are derived
+        from the raw data files but are more friendly
+        for subsequent data analysis.
     """
     def __init__(self, metatable: pd.DataFrame, raw_data_path: str, processed_data_path: str):
         self.metatable = metatable
@@ -233,67 +253,95 @@ class DataFileLoader(object):
         self.raw_data_list = []
         self.processed_data_list = []
 
-    def _table_reformatter(self, spreadsheet: Dict[str, pd.DataFrame]) -> Dict:
+    def _scrape_data(self):
         """
+        Scrapes the MONET2030 indicator data from the WWW.
+        The raw data is subsequently transformed into a more
+        analysis-friendly form. Both, raw and transformed
+        data are written to disk.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
         """
-        sheetnames = list(spreadsheet.keys())
+        print("Scraping...")
+        n_rows = len(self.metatable)
+        for counter, (idx, row) in enumerate(self.metatable.iterrows()):
+            print(f"{(counter+1)/n_rows}")
+            etl_df = etl.ETL_DataFile(row)
+            etl_df.extract()
+            etl_df.transform()
+
+            # Make data available
+            self.raw_data_list.append(etl_df.raw_spreadsheet)
+            self.processed_data_list.append(etl_df.processed_data)
+            
+            # Prepare writing to file
+            file_name_root = f"m2030ind_damid_{row["damid"]}"
+
+            # Write raw data to file
+            with pd.ExcelWriter(self.raw_fpath / (file_name_root + ".xlsx")) as writer: 
+                etl_df.raw_spreadsheet.to_excel(writer, sheet_name=name)
+
+            # Write processed data to file
+            etl_df.processed_data.to_csv(self.processed_fpath / (file_name_root + ".csv"))
+        print("-> done!")
+
+    def _read_data(self):
+        """
+        Reads both raw and processed data from disk, assuming
+        those data files exist at the indicated locations.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        print("Reading raw data from disk...")
+        self.raw_data_list = [pd.read_excel(file, sheet_name=None) for file in self.raw_fpath.glob("*.xlsx")]
+        print("-> done!")
+
+        print("Reading processed data from disk...")
+        self.processed_data_list = [pd.read_csv(file) for file in self.processed_fpath.glob("*.xlsx")]
+        print("-> done!")
+
+    def get_data(self):
+        """
+        Reads MONET2030 indicator data tables into memory.
     
-        table = spreadsheet[sheetnames[0]]
-        name = table.iloc[0,0]
-        desc = table.iloc[1,0]
-        if desc is np.nan:
-            column_headers_row = 2
+        Checks if the tables are already written to disk in which case the
+        data is loaded into memory from disk by calling the _read_data_tables
+        function. Otherwise the function _scrape_indicator_table is called in
+        which case the data is scraped from the internet.
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        # Read data from disk if it already exists
+        if self.raw_fpath.exists() and self.processed_fpath.exists():
+            self._read_data()
+    
+        # Otherwise, scrape data from WWW
         else:
-            column_headers_row = 3
-        
-        col_names = [v for v in table.iloc[column_headers_row,:].values if (v is not np.nan and len(v.strip())>0)]
-        
-        df = table.iloc[column_headers_row+1:,:]
-        
-        col_rename_dict = dict()
-        col_rename_dict[df.columns[0]] = "Year"
-        for i in range(1, len(col_names)+1):
-            col_rename_dict[df.columns[i]] = col_names[i-1]
-        df = df.rename(col_rename_dict, axis=1)
-        df = df.set_index("Year")
-        
-        for cntr, idx in enumerate(df.index):
-            if idx!=idx:
-                stop = cntr
-                break
-        
-        remark = " ".join([str(txt) for txt in df.index[stop:] if txt==txt])
-        df = df.iloc[:stop,:]
-        df.columns.name = name
-        df
-    
-        return {"table": df,
-                "desc": desc,
-                "remark": remark}
-    
-    def _pull_raw_data(self):
-        for idx, row in self.metatable.iterrows():
-            doc = pd.read_excel(row["Data_url"], sheet_name=None)
-
-            file_name = f"m2030ind_damid_{row["damid"]}.xlsx"
-            with pd.ExcelWriter(self.raw_fpath / file_name) as writer: 
-                for name, data in doc.items():
-                    data.to_excel(writer, sheet_name=name)
-            
-            self.raw_data_list.append(doc)
-            
-
-    def reformat(self):
-        for doc in self.raw_data_list:
-            proc_doc = self._table_reformatter(doc)
-            self.processed_data_list.append(proc_doc)
-    
-    def get_raw_data(self):
-        pass
+            self._scrape_data()
         
 
 def main():
     """
+    Main function scraping or reading the MONET2030
+    indicator data.
     """
     # -----------------------------------
     # 1) List of all MONET2030 indicators
@@ -320,11 +368,13 @@ def main():
     # ------------------------------
     # 3) Download all the data files
     # ------------------------------
+    # Download the data files listed in the metadata table created in the previous
+    # step. The data files are stored in raw as well as processed format.
     dfl = DataFileLoader(mitl.table,
                          const.raw_data_path,
                          const.processed_data_path
                         )
+    dfl.get_data()
 
 if __name__ == "__main__":
     main()
-    
