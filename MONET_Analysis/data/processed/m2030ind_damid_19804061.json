@@ -1,0 +1,9 @@
+{
+  "damid": 19804061,
+  "description": "Permanent resident population between 15 and 64 years - Hours per week",
+  "remark": "2010: Revision of the SLFS Last update:  27.08.2021 Source: FSO \u2013 SLFS: module \"Unpaid Work\" \u00a9 FSO 2021",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"total\",\"Men, paid work\",\"Men, domestic work and childcare\",\"Women, paid work\",\"Women, domestic work and childcare\"],\"index\":[\"1997\",\"2000\",\"2004\",\"2007\",\"2010\",\"2013\",\"2016\",\"2020\"],\"data\":[[102,35.2,15.5,18.6,32.7],[104.5,36,16.4,20.2,31.9],[103.5,34.8,17,20,31.7],[104.8,34.8,18.3,20,31.7],[99.3,33.5,16.4,20,29.4],[99.2,32.7,17.6,19.9,29],[102,33,18.1,21.3,29.6],[101.2,31,19.3,20.7,30.2]]}"
+  }
+}

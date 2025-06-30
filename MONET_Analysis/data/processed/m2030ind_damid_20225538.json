@@ -1,0 +1,9 @@
+{
+  "damid": 20225538,
+  "description": "Share of the permanent resident population aged 15 and over that carries out voluntary work - In percent",
+  "remark": "2010: revision of the SLFS 2016: break in the time series due to methodological adjustments Last update:  18.11.2021 Source: FSO \u2013 Swiss Labour Force Survey (SLFS) \u00a9 FSO 2021",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Women\",\"Men\"],\"index\":[\"2000\",\"2004\",\"2007\",\"2010\",\"2013\",\"2016\",\"2020\"],\"data\":[[41.6,39.9],[41,40.4],[38.9,37.3],[33.5,31.9],[34.5,31.2],[44,41.4],[42.1,39.9]]}"
+  }
+}

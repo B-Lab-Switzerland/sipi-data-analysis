@@ -1,6 +1,8 @@
 # Std lib imports
 import errno
 import os
+import json
+from collections import OrderedDict
 from datetime import datetime as dt
 from typing import Dict
 
@@ -10,6 +12,7 @@ import numpy as np
 
 # Local imports
 from pymonet import monet_etl as etl
+from pymonet import monet_aux as aux
 
 class IndicatorTableLoader(object):
     """
@@ -271,24 +274,39 @@ class DataFileLoader(object):
         print("Scraping...")
         n_rows = len(self.metatable)
         for counter, (idx, row) in enumerate(self.metatable.iterrows()):
-            print(f"{(counter+1)/n_rows}")
+            print(f"{(counter+1)}/{n_rows}", end="\r")
             etl_df = etl.ETL_DataFile(row)
             etl_df.extract()
             etl_df.transform()
 
-            # Make data available
-            self.raw_data_list.append(etl_df.raw_spreadsheet)
-            self.processed_data_list.append(etl_df.processed_data)
-            
             # Prepare writing to file
-            file_name_root = f"m2030ind_damid_{row["damid"]}"
+            file_name_root = f"m2030ind_damid_{str(row["damid"]).zfill(8)}"
 
             # Write raw data to file
-            with pd.ExcelWriter(self.raw_fpath / (file_name_root + ".xlsx")) as writer: 
-                etl_df.raw_spreadsheet.to_excel(writer, sheet_name=name)
+            self.raw_fpath.mkdir(parents=True, exist_ok=True)
+            with pd.ExcelWriter(self.raw_fpath / (file_name_root + ".xlsx")) as writer:
+                for name, df in etl_df.raw_spreadsheet.items():
+                    df.to_excel(writer, sheet_name=name)
 
-            # Write processed data to file
-            etl_df.processed_data.to_csv(self.processed_fpath / (file_name_root + ".csv"))
+
+            # Augment/enrich processed data
+            etl_df.processed_data["obervable"] = row["Observable"]
+            etl_df.processed_data["damid"] = row["damid"]
+
+            # Serialize the processed data to json string
+            key_order = ["damid", "observable", "description", "remark", "data"]
+            ordered_dict = aux.reorder_keys(etl_df.processed_data, key_order)
+            serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
+
+            # Make data available
+            self.raw_data_list.append(etl_df.raw_spreadsheet)
+            self.processed_data_list.append(ordered_dict)
+            
+            # Write processed data to json file
+            self.processed_fpath.mkdir(parents=True, exist_ok=True)
+            with open(self.processed_fpath / (file_name_root + ".json"), 'w') as f:
+                data_json_str = json.dump(serializable_data, f, indent=2)
+            
         print("-> done!")
 
     def _read_data(self):
@@ -305,11 +323,22 @@ class DataFileLoader(object):
         None
         """
         print("Reading raw data from disk...")
-        self.raw_data_list = [pd.read_excel(file, sheet_name=None) for file in self.raw_fpath.glob("*.xlsx")]
+        sorted_xlsx_files = sorted([file for file in self.raw_fpath.glob("*.xlsx")])
+        self.raw_data_list = [(file.as_posix().split("/")[-1].split(".")[0].split("_")[-1], 
+                               pd.read_excel(file, sheet_name=None)
+                              ) for file in sorted_xlsx_files
+                             ]
         print("-> done!")
 
         print("Reading processed data from disk...")
-        self.processed_data_list = [pd.read_csv(file) for file in self.processed_fpath.glob("*.xlsx")]
+        sorted_json_files = sorted([file for file in self.processed_fpath.glob("*.json")])
+
+        for file in sorted_json_files:
+            with open(file, 'r') as f:
+                loaded_dict = json.load(f)
+
+            self.processed_data_list.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
+            
         print("-> done!")
 
     def get_data(self):
@@ -330,7 +359,12 @@ class DataFileLoader(object):
         None
         """
         # Read data from disk if it already exists
-        if self.raw_fpath.exists() and self.processed_fpath.exists():
+        n_files_expected = len(self.metatable)
+        paths_exist = self.raw_fpath.exists() and self.processed_fpath.exists()
+        dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)\
+                        &(len([f for f in self.processed_fpath.glob("*.json")])==n_files_expected)
+        
+        if paths_exist & dirs_not_empty:
             self._read_data()
     
         # Otherwise, scrape data from WWW

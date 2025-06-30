@@ -12,6 +12,7 @@ from playwright.async_api import async_playwright
 
 # == Data Analysis
 import pandas as pd
+import numpy as np
 
 # Local imports
 from pymonet import monet_aux as aux
@@ -229,7 +230,7 @@ class ETL_DataFile(object):
         """
         sheetnames = list(self.raw_spreadsheet.keys())
     
-        table = spreadsheet[sheetnames[0]]
+        table = self.raw_spreadsheet[sheetnames[0]]
         name = table.iloc[0,0]
         desc = table.iloc[1,0]
         if desc is np.nan:
@@ -258,4 +259,4 @@ class ETL_DataFile(object):
         df.columns.name = name
         df
     
-        self.processed_data =  {"table": df, "desc": desc, "remark": remark}
+        self.processed_data =  {"data": df, "description": desc, "remark": remark}

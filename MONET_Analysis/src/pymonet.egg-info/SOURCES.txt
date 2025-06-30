@@ -1,7 +1,0 @@
-setup.py
-src/pymonet/__init__.py
-src/pymonet/monet_aux.py
-src/pymonet.egg-info/PKG-INFO
-src/pymonet.egg-info/SOURCES.txt
-src/pymonet.egg-info/dependency_links.txt
-src/pymonet.egg-info/top_level.txt

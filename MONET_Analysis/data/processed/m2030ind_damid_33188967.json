@@ -1,0 +1,9 @@
+{
+  "damid": 33188967,
+  "description": "Percentage of not employed young people aged 15 to 29 who are not in education or training",
+  "remark": "Last update:  21.11.2024 Source: Eurostat \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2023\"],\"data\":[[8.1277258],[7.956084],[7.7371392],[7.9792415],[7.6808046],[7.3387447],[7.5230317],[7.1910507],[6.5735949],[6.2444657],[6.2710408],[7.7096285]]}"
+  }
+}

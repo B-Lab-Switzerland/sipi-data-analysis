@@ -1,0 +1,9 @@
+{
+  "damid": 33188551,
+  "description": "Poverty rates among employed persons",
+  "remark": "excluding the imputed rent 2014: break in the time series due to methodological adaptations A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Statistics on Income and Living Conditions (SILC) \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[4.793,0.645],[4.7,0.658],[3.805,0.543],[3.545,0.495],[3.631,0.557],[3.494,0.534],[2.651,0.501],[3.374,0.451],[3.895,0.572],[3.779,0.588],[4.321,0.516],[3.668,0.562],[4.219,0.662],[4.186,0.697],[4.164059,0.525678],[3.795551,0.496336]]}"
+  }
+}

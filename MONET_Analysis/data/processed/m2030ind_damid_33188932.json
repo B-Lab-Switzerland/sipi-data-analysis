@@ -1,0 +1,9 @@
+{
+  "damid": 33188932,
+  "description": "Switzerland\u2019s ranking in the Global Corruption Perception Index",
+  "remark": "Last update:  21.11.2024 Source: Transparency International \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Data\"],\"index\":[\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[6],[7],[5],[6],[5],[3],[3],[4],[3],[7],[7],[6]]}"
+  }
+}

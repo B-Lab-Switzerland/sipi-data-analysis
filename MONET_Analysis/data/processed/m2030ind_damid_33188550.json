@@ -1,0 +1,9 @@
+{
+  "damid": 33188550,
+  "description": "Proportion of the permanent resident population aged 15 or over that regularly uses at least two languages\u00b9",
+  "remark": "\u00b9   main language as well as language spoken at home, at work or in places of education Last update:  21.11.2024 Source: FSO \u2013 Structural survey \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[36.964],[37.2891],[37.7939],[38.6134],[39.4311],[39.8874],[40.689],[41.1397],[40.8661],[40.7259],[40.5739],[40.8232],[41.8344]]}"
+  }
+}

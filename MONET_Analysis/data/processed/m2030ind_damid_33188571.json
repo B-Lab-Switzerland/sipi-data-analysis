@@ -1,0 +1,9 @@
+{
+  "damid": 33188571,
+  "description": "Share of people affected by income poverty in the permanent resident population living in private households - In percent",
+  "remark": "excluding the imputed rent 2014: break in the time series due to methodological adaptations A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Statistics on Income and Living Conditions (SILC) \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Women\",\"95% Confidence interval (+\\/-)\",\"Men\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[10.31,0.943,8.25,0.91],[9.443,0.846,7.018,0.797],[9.285,0.824,6.898,0.753],[8.842,0.782,6.982,0.794],[8.284,0.812,6.543,0.801],[8.554,0.807,6.752,0.794],[6.603,0.708,5.151,0.729],[7.628,0.712,5.684,0.564],[8.069,0.738,6.015,0.592],[8.476,0.777,6.532,0.63],[8.553,0.662,7.757,0.716],[8.115,0.826,7.633,0.898],[9.126,0.763,8.352,0.792],[9.073,0.831,7.985,0.745],[9.315371,0.760699,8.152003,0.76586],[8.553797,0.725294,7.753733,0.824815]]}"
+  }
+}

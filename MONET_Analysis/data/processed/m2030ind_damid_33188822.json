@@ -1,0 +1,9 @@
+{
+  "damid": 33188822,
+  "description": "Share of recreational areas\u00b9 in settlement areas of urban spaces",
+  "remark": "\u00b9   Recreational areas, green spaces and land adjoining dwellings Last update:  21.11.2024 Source: FSO \u2013 Land use Statistics (AREA), Geographical levels \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"1979\\/85\",\"1992\\/97\",\"2004\\/09\",\"2013\\/18\"],\"data\":[[34.4803712916],[36.1799717739],[37.7771774291],[38.3267278944]]}"
+  }
+}

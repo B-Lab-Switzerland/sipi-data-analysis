@@ -1,0 +1,9 @@
+{
+  "damid": 33188850,
+  "description": "Number of substances listed in the Chemicals Ordinance (cumulative entries)",
+  "remark": "Last update:  21.11.2024 Source: FOPH \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Dangerous substances\",\"Substances of very high concern\"],\"index\":[\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\",\"2024\"],\"data\":[[4090,84],[4112,137],[4126,154],[4146,163],[4172,169],[4196,174],[4196,191],[4212,197],[4266,209],[4288,211],[4327,223],[4327,233],[4355,240]]}"
+  }
+}

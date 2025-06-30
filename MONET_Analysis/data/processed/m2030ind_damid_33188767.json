@@ -1,0 +1,9 @@
+{
+  "damid": 33188767,
+  "description": "In relation to gross domestic product",
+  "remark": "Last update:  21.11.2024 Source: FSO \u2013 Science and Technology \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2000\",\"2004\",\"2008\",\"2012\",\"2015\",\"2017\",\"2019\",\"2021\"],\"data\":[[2.2638586614],[2.6079803819],[2.6531599924],[2.8743994547],[3.0764121392],[3.0769761519],[3.1967984034],[3.3591815634]]}"
+  }
+}

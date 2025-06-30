@@ -1,0 +1,9 @@
+{
+  "damid": 33188945,
+  "description": "Wage gap\u00b9 between women and men as a percentage of men's monthly gross wage, private sector",
+  "remark": "\u00b9   compared to the median wage Last update:  21.11.2024 Source: FSO \u2013 Swiss Earnings Structure Survey (ESS) \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"1994\",\"1996\",\"1998\",\"2000\",\"2002\",\"2004\",\"2006\",\"2008\",\"2010\",\"2012\",\"2014\",\"2016\",\"2018\",\"2020\",\"2022\"],\"data\":[[23.7919658451],[22.9056603774],[21.4879084364],[21.491623131],[20.8764665286],[19.8815566836],[19.060268969],[18.7043351193],[17.9624664879],[18.8615901114],[15.1162790698],[14.576065524],[14.3787878788],[13.810589],[11.7224178404]]}"
+  }
+}

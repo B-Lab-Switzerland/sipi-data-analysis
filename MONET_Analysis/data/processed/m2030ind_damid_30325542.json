@@ -1,0 +1,9 @@
+{
+  "damid": 30325542,
+  "description": "Share of the population that considers that global warming due to climate change is very dangerous or rather dangerous - In percent",
+  "remark": "2019: break in the time series due to a methodological change A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  01.02.2024 Source: FSO \u2013 Omnibus surveys 2011, 2015, 2019 & 2023 \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Women\",\"95% Confidence interval (+\\/-)\",\"Men\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2011\",\"2015\",\"2019\",\"2023\"],\"data\":[[83.7542,1.6854092,75.0229,1.98885515],[85.0267,1.9913,75.2202,2.4226],[91.5737,1.465,83.7953,1.9448],[90.0197,1.6062,81.1235,2.0676]]}"
+  }
+}

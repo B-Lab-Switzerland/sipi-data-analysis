@@ -1,0 +1,9 @@
+{
+  "damid": 30325545,
+  "description": "Percentage of the population that feels disturbed at home during the day by traffic noise",
+  "remark": "A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  01.02.2024 Source: FSO \u2013 Omnibus surveys 2011, 2015, 2019 & 2023 \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2011\",\"2015\",\"2019\",\"2023\"],\"data\":[[22.6067,1.3964],[24.3221,1.6928],[31.4949,1.732],[35.5609,1.7601]]}"
+  }
+}

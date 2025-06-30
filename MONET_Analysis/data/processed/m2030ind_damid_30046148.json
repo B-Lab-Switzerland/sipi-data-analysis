@@ -1,0 +1,9 @@
+{
+  "damid": 30046148,
+  "description": "Share of 15-year-olds reaching at least reading skills level 2 (scale <1 to 6)",
+  "remark": "2009: change in the skills profiles 2015: break in the time series due to methodological adaptations Last update:  19.12.2023 Source: Consortium PISA.ch \u00a9 FSO 2023",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2000\",\"2003\",\"2006\",\"2009\",\"2012\",\"2015\",\"2018\",\"2022\"],\"data\":[[79.6],[83.4],[83.6],[83.1],[85.9],[80.02],[76.3659414548],[75.3801094583]]}"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "damid": 28325222,
+  "description": "In full-time equivalents per Thousand employed persons",
+  "remark": "Last update:  16.11.2023 Sources: FSO \u2013 Research and development; OECD \u00a9 FSO 2023",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Data\"],\"index\":[\"1996\",\"2000\",\"2004\",\"2008\",\"2012\",\"2015\",\"2017\",\"2019\",\"2021\"],\"data\":[[5.3873197905],[6.2314860265],[5.8192476033],[5.3611644456],[7.2789857399],[8.4147426351],[8.3907899614],[8.9014108513],[9.717747901]]}"
+  }
+}

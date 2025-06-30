@@ -1,0 +1,9 @@
+{
+  "damid": 33188653,
+  "description": "Number of victims of serious physical domestic violence recorded by the police",
+  "remark": "Last update:  21.11.2024 Source: FSO \u2013 Police crime statistics (PCS) \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Women\",\"Men\"],\"index\":[\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[64,30],[74,27],[76,34],[67,39],[68,27],[61,38],[69,36],[77,26],[65,28],[64,28],[78,35],[99,42],[63,22],[74,44],[85,38]]}"
+  }
+}

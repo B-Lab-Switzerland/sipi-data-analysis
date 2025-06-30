@@ -1,0 +1,9 @@
+{
+  "damid": 33188627,
+  "description": "Professors and lecturers with management responsibility, share of women - In percent",
+  "remark": "Last update:  21.11.2024 Source: FSO \u2013 School and higher education staff statistics \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Professors (UNI)\",\"Lecturers with management responsibility (UAS\\/UTE)\"],\"index\":[\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[19.17,31.93],[20.376712329,29.9],[21.29,30.15],[22.1636488655,29.85],[22.77,29.93],[23.4,30.48],[23.95,31.64],[25.226390686,31.89],[26.4510601842,33.04],[28.4,33.9],[29.65,35.16]]}"
+  }
+}

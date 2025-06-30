@@ -1,0 +1,9 @@
+{
+  "damid": 28325038,
+  "description": "Greenhouse gas footprint to final domestic demand of goods and services ratio\u00b9",
+  "remark": "\u00b9    Sum of expenditure on final consumption and gross capital formation 2021: provisional Last update: 11.07.2024; the greenhouse gas footprint for 2020 has been corrected. Source: FSO \u2013 Environmental accounts, National accounts \u00a9 FSO 2023",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Index 2000 = 100\"],\"index\":[\"2000\",\"2001\",\"2002\",\"2003\",\"2004\",\"2005\",\"2006\",\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\"],\"data\":[[100],[104.1308259439],[92.9014882338],[88.8260856115],[88.531466683],[89.5614032237],[91.0002564291],[86.6204176348],[80.6954825204],[77.8645627731],[82.704314883],[82.6541453397],[83.8620269189],[84.1053582937],[77.5398533333],[76.5040251099],[78.2327164832],[71.0366938203],[72.7447443396],[72.1620346057],[66.534479514],[69.3653505616]]}"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "damid": 28325324,
+  "description": "Percentage of the population aged 15 and over living in a private household with chronic heavy alcohol consumption\u00b9",
+  "remark": "\u00b9 Men: per day 4 standard glasses of alcohol or more; women: per day 2 standard glasses or more. A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  16.11.2023 Source: FSO \u2013 Swiss Health Survey (SHS) \u00a9 FSO 2023",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"In percent\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"1997\",\"2002\",\"2007\",\"2012\",\"2017\",\"2022\"],\"data\":[[6.158,0.47],[6.1,0.418],[5.146,0.398],[4.823,0.354],[4.651,0.333],[3.859,0.322]]}"
+  }
+}

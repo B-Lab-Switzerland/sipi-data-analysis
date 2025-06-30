@@ -1,0 +1,9 @@
+{
+  "damid": 33188508,
+  "description": "Proportion of young people who obtained their first certification before the age of 25 - in % of the reference population of the same age",
+  "remark": "Last update:  21.11.2024 Source: FSO \u2013 LABB \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"Swiss born in Switzerland\",\"Foreigners born abroad\"],\"index\":[\"2016\",\"2019\",\"2022\"],\"data\":[[94.381,76.232],[94.094,77.771],[92.142,85.325]]}"
+  }
+}

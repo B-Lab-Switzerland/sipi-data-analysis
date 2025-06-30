@@ -1,0 +1,9 @@
+{
+  "damid": 33188963,
+  "description": "Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",
+  "remark": "1st quintile: lowest income; 5th quintile: highest income 2015: break in the time series due to methodological adaptations A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Household Budget Survey (HBS) \u00a9 FSO 2024",
+  "data": {
+    "__type__": "DataFrame",
+    "data": "{\"columns\":[\"1st\",\"95% Confidence interval (+\\/-)\",\"2nd\",\"95% Confidence interval (+\\/-)\",\"3rd\",\"95% Confidence interval (+\\/-)\",\"4th\",\"95% Confidence interval (+\\/-)\",\"5th\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2006\\/08\",\"2009\\/11\",\"2012\\/14\",\"2015\\/17\",\"2018\\/19\",\"2020\\/21\"],\"data\":[[30.9321454813,0.2368821466,21.2116285974,0.2899808294,17.5583740187,0.2647673354,14.8465319554,0.1878739034,11.5623059089,0.0558590111],[30.5349872819,0.2664419192,20.917070839,0.2792912522,17.214003158,0.2198777977,14.3133873789,0.1836145035,11.1694687705,0.1103350493],[30.9548869543,0.3180937965,20.6412355065,0.3018071162,17.0800643436,0.2623086351,13.9868537651,0.1911732557,10.0399492677,0.0095226479],[33.6630215373,0.2377197479,21.3165040241,0.3326697338,17.2577497023,0.265755483,14.0821202908,0.1986761798,10.0279427243,0.0487664672],[34.0440038848,0.3996415841,21.4920898117,0.3438011592,16.5520068722,0.2818252695,13.9409292747,0.2484974743,9.260408517,0.0669146567],[32.1905157766,0.441842879,20.758470124,0.3854744155,16.1358306885,0.328241515,13.41781105,0.278045419,8.834032092,0.112780149]]}"
+  }
+}
