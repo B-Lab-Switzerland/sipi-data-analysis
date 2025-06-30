@@ -1,9 +1,0 @@
-{
-  "damid": 33188596,
-  "description": "Number of plant genetic resources recorded in the National Gene Bank",
-  "remark": "Last update:  21.11.2024 Source: Federal Office for Agriculture \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Data\"],\"index\":[\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[5319],[5434],[5434],[5449],[5400],[5440],[5643],[5954]]}"
-  }
-}

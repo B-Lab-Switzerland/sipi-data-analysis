@@ -1,9 +1,0 @@
-{
-  "damid": 28325349,
-  "description": "Density of built residential zones, mixed zones and core zones",
-  "remark": "Last update:  16.11.2023 Source: ARE \u2013 Swiss building zones statistics, FSO \u2013  STATPOP, STATENT \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Inhabitants and jobs (FTE) per hectare\"],\"index\":[\"2012\",\"2017\",\"2022\"],\"data\":[[66.2045352211],[69.1571468998],[70.6490203513]]}"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "damid": 33188720,
-  "description": "Share of jobs in innovative economic activities in total of secondary and tertiary sector jobs in full-time equivalents",
-  "remark": "Last update:  21.11.2024 Source: FSO \u2013 Structural business statistics (STATENT) \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[29.8893968369],[29.7556936801],[29.7661310015],[29.6944753353],[29.5726534685],[29.5988938475],[29.7279613004],[29.8223447501],[29.8343622324],[29.8556758788],[30.2440071033],[30.3195765035]]}"
-  }
-}

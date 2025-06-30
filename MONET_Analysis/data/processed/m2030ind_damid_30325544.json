@@ -1,9 +1,0 @@
-{
-  "damid": 30325544,
-  "description": "Share of the population that claims to always or often adopt environmentally friendly behaviour - In percent",
-  "remark": "2019: break in the time series due to a methodological change A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  01.02.2024 Source: FSO \u2013 Omnibus surveys 2011, 2015, 2019 & 2023 \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Consideration of energy consumption when buying small electrical devices\",\"95% Confidence interval (+\\/-)\",\"Consumption of food from organic production\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2011\",\"2015\",\"2019\",\"2023\"],\"data\":[[64.8193,1.52752721,36.3433,1.58636381],[74.5838,1.7461,39.7081,1.9064],[72.2069,1.6461,42.9356,1.8077],[70.382,1.6692,43.5798,1.836]]}"
-  }
-}

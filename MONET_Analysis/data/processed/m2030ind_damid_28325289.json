@@ -1,9 +1,0 @@
-{
-  "damid": 28325289,
-  "description": "Percentage of interviewed persons who had been victims of discrimination (self-assessment)",
-  "remark": "A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  16.11.2023 Source: FSO \u2013 Survey on diversity and coexistence in Switzerland \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2016\",\"2018\",\"2020\",\"2022\"],\"data\":[[21.477873,1.5307047481],[24.272707,1.5652162988],[28.238662,1.59182872],[26.590027,1.6784037858]]}"
-  }
-}

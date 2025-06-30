@@ -1,9 +1,0 @@
-{
-  "damid": 33188532,
-  "description": "Proportion of the population aged 16 and over with a high or very high degree of satisfaction with their current life - In percent",
-  "remark": "A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Statistics on Income and Living Conditions (SILC) \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"High degree of satisfaction\",\"95% Confidence interval (+\\/-)\",\"Very high degree of satisfaction\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[32.894,0.854,39.002,0.882],[32.446,0.837,37.81,0.859],[32.767,0.844,37.646,0.859],[32.0131464104,0.8221107744,37.2880417381,0.8290281224],[32.7951331172,0.9757993122,37.9706701028,0.9715346507],[31.9263928425,0.9497073356,40.0034891641,0.9610443778],[32.1292381539,0.9038154658,40.415471898,0.9326768234],[30.999163457,0.9313662192,36.8073295668,0.9362218129],[31.7936221936,0.9378538155,37.9159208106,0.9798569408]]}"
-  }
-}

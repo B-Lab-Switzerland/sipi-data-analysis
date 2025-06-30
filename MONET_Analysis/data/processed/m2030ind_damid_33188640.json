@@ -1,9 +1,0 @@
-{
-  "damid": 33188640,
-  "description": "Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities - In percent",
-  "remark": "2021: Break in the series due to adaptation of the method. The results are not published because the transition to the new data collection method has not been completed for all survey quarters. A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Swiss Labour Force Survey (SLFS) \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Swiss nationals\",\"95% Confidence interval (+\\/-)\",\"Foreign nationals\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2022\",\"2023\"],\"data\":[[26.9251,0.3694,19.2598,0.5696],[26.3433,0.354,18.7829,0.5374],[25.8383,0.3488,19.9132,0.5297],[25.9777,0.3568,20.6093,0.5828],[27.342,0.3753,21.2652,0.6516],[27.7045,0.3848,20.9394,0.6745],[27.7979,0.3892,22.4357,0.7233],[27.4951,0.3811,22.1795,0.6794],[27.5888,0.3803,23.089,0.6958],[27.9323,0.3851,23.441,0.689],[22.038,0.3515,21.9955,0.6811],[16.8374,0.3005,15.4445,0.4531],[22.0597,0.3336,20.6656,0.5127]]}"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "damid": 5626316,
-  "description": "Share of the total length of watercourses in a poor ecomorphological condition\u00b9",
-  "remark": "\u00b9   non-natural/artificial, heavily modified, culverted Last update:  07.03.2018 Source: FOEN \u2013 Ecomorphology Level I (regional survey) \u00a9 FSO  2018",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\"],\"index\":[\"1998\\/2006\"],\"data\":[[24]]}"
-  }
-}

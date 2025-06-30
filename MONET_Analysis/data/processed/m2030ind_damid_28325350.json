@@ -1,9 +1,0 @@
-{
-  "damid": 28325350,
-  "description": "Weighted urban sprawl",
-  "remark": "Last update:  16.11.2023 Source: FOEN \u2013 Landscape Monitoring Switzerland (LABES) \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Urban penetration units (UPU) per m\\u00b2 of landscape\"],\"index\":[\"2014\",\"2018\"],\"data\":[[2.08384],[2.382675]]}"
-  }
-}

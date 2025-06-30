@@ -1,9 +1,0 @@
-{
-  "damid": 33188914,
-  "description": "Number of victims for completed serious violent offences\u00b9 known to the police",
-  "remark": "\u00b9   homicide, grievous bodily harm, female genital mutilation, violent robbery, hostage-taking, rape Last update:  21.11.2024 Source: FSO \u2013 Police Crime Statistics (PCS) \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Women\",\"Men\"],\"index\":[\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[706,361],[597,339],[593,343],[612,406],[621,349],[587,364],[552,324],[598,306],[638,321],[643,292],[705,292],[734,337],[788,276],[903,358],[880,372]]}"
-  }
-}

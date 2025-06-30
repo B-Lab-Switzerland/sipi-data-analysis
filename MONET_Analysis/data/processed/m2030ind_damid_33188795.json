@@ -1,9 +1,0 @@
-{
-  "damid": 33188795,
-  "description": "Poverty rate of the permanent resident population aged 16 and older - In percent",
-  "remark": "2014: break in time series A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Statistics on Income and Living Conditions (SILC)  \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Population without a migration background\",\"95% Confidence interval (+\\/-)\",\"Population with a migration background\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\"],\"data\":[[6.9992775387,0.6652096703,9.6058242321,1.5006739483],[5.495335234,0.5768751664,7.1788481587,1.3210589952],[6.292,0.569,7.703,1.21],[6.436,0.559,9.203,0.902],[6.985,0.566,8.546,0.897],[7.286,0.558,9.66,0.882],[6.742,0.677,9.831,1.074],[7.462,0.597,10.488,0.992],[6.7596466809,0.6391176129,10.5906339272,1.3355867211],[6.9813896344,0.626888633,11.4259317415,1.2672088474],[7.6114038294,0.6511255402,10.1699891842,1.1296809079]]}"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "damid": 33188793,
-  "description": "People living in working households",
-  "remark": "\u00b9   Ratio of income of the top 20% of the population to that of the bottom 20% 2015: break in time series break in the time series due to methodological adaptations A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  21.11.2024 Source: FSO \u2013 Household Budget Survey (HBS), revised weighting model 20 \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Data\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2000\",\"2001\",\"2002\",\"2003\",\"2004\",\"2005\",\"2006\",\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\"],\"data\":[[5.5845094539,0.4801758016],[4.757997531,0.3536792896],[5.340853948,0.4275305465],[4.9756303356,0.3662692541],[5.6420712903,0.5549265654],[5.8665310866,0.5340646339],[5.6303278646,0.5177329736],[6.7325345959,0.8224771137],[5.6972018379,0.4676392187],[5.4363290798,0.449907994],[5.553297629,0.4873581057],[5.8253774572,0.5787870508],[6.0838051949,0.7612895935],[6.6550097222,0.7736581017],[6.1416468517,0.6772705055],[6.8218605513,0.9258393913],[6.6561211848,0.6851295144],[7.2801613749,0.9866009596],[7.6801643893,1.2056526992],[6.9305536643,0.8584932857],[6.97509147,0.8990202667],[6.5988884999,0.8002063037]]}"
-  }
-}

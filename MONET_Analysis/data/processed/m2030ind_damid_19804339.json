@@ -1,9 +1,0 @@
-{
-  "damid": 19804339,
-  "description": "Share of the population aged 15 and over who participated in following activities - In percent",
-  "remark": "A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  17.11.2021 Source: FSO \u2013 Language, religion and culture survey (LRCS) \u00a9 FSO 2021",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Visiting museums and exhibitions\",\"95% Confidence interval (+\\/-)\",\"Going to festivals (all types)\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2014\",\"2019\"],\"data\":[[72.2285513207,0.8314244127,37.8058991978,0.8768692178],[70.6207487755,0.9278482193,46.5268846819,0.9921741993]]}"
-  }
-}

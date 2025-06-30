@@ -1,9 +1,0 @@
-{
-  "damid": 33188873,
-  "description": "CO2 equivalents without the carbon sink effect from the forest - Millions tonnes",
-  "remark": "*The review of the target achievement will consider the accountable carbon sink resulting from the CO2 storage by the vegetation and solis as well as international attestations. Last update:  21.11.2024 Source: FOEN \u2013 Greenhouse gas inventory \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Greenhouse gas emissions\",\"Target according to Paris Agreement for 2030*\"],\"index\":[\"1990\",\"1991\",\"1992\",\"1993\",\"1994\",\"1995\",\"1996\",\"1997\",\"1998\",\"1999\",\"2000\",\"2001\",\"2002\",\"2003\",\"2004\",\"2005\",\"2006\",\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2030\"],\"data\":[[55.0578215452,null],[56.9138372895,null],[56.6200268186,null],[53.999810869,null],[52.9284552724,null],[53.795017905,null],[54.4398589147,null],[53.2191756549,null],[54.7505242576,null],[54.5503212332,null],[53.8094103563,null],[55.3373233027,null],[53.7787459858,null],[54.8383159135,null],[55.4320298062,null],[56.060547734,null],[55.734045182,null],[53.7956801754,null],[55.189402477,null],[53.7075986126,null],[55.2929384388,null],[51.1708667498,null],[52.4969032799,null],[53.3448940209,null],[49.4067096414,null],[48.8886525851,null],[49.1941695626,null],[48.2231800616,null],[46.7140976638,null],[46.465024902,null],[43.7966818756,null],[45.1375829936,null],[41.6304223523,null],[null,27.5289107726]]}"
-  }
-}

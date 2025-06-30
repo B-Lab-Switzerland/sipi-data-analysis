@@ -1,9 +1,0 @@
-{
-  "damid": 33707230,
-  "description": "Share of unemployed people in the labor force aged 15-74 - In percent",
-  "remark": "2021: break in time series A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  19.12.2024 Source: FSO - Swiss Labour Force Survey (SLFS) \u00a9 FSO 2024",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"with a migration background\",\"95% Confidence interval (+\\/-)\",\"Without a migration background\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\",\"2022\",\"2023\"],\"data\":[[7.34,0.31,2.76,0.2],[7.73,0.3,2.93,0.22],[7.68,0.39,3.05,0.25],[7.71,0.39,2.94,0.23],[7.83,0.41,2.99,0.24],[7.62,0.38,2.87,0.22],[7.44,0.38,2.83,0.23],[7.06,0.38,2.53,0.22],[7.27,0.37,3.07,0.22],[7.97,0.33,2.84,0.21],[6.46,0.3,2.36,0.19],[6.14,0.29,2.42,0.2]]}"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "damid": 28325348,
-  "description": "Share of the population aged 15 and over who are overweight (BMI of 25 or more) - In percent",
-  "remark": "A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  16.11.2023 Source: FSO \u2013 Swiss Health Survey (SHS) \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"Women\",\"95% Confidence interval (+\\/-)\",\"Men\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"1992\",\"1997\",\"2002\",\"2007\",\"2012\",\"2017\",\"2022\"],\"data\":[[21.954,1.0480845,39.27,1.3553245],[28.177,1.1987505,42.343,1.449049],[29.297,1.098285,45.605,1.3259055],[28.676,1.119815,46.692,1.3604245],[31.98,1.1171695,50.558,1.2453955],[32.999,1.0088125,50.993,1.15248],[33.8,1.0509075,52.3,1.227556]]}"
-  }
-}

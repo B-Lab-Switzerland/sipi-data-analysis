@@ -1,9 +1,0 @@
-{
-  "damid": 29946646,
-  "description": "Percentage of employed persons in the severely disabled resident population aged 16 to 64 living in a private household",
-  "remark": "2014: break in the time series due to methodological adaptations A confidence interval informs about the precision of results of sample surveys. The interval contains the true value with a probability of 95%. Last update:  19.12.2023 Source: FSO \u2013 Statistics on Income and Living Conditions (SILC) \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\",\"95% Confidence interval (+\\/-)\"],\"index\":[\"2007\",\"2008\",\"2009\",\"2010\",\"2011\",\"2012\",\"2013\",\"2014\",\"2015\",\"2016\",\"2017\",\"2018\",\"2019\",\"2020\",\"2021\"],\"data\":[[50.3643,5.400933],[50.46,5.818808],[49.1428,5.557703],[50.0848,5.339502],[59.0772,5.423537],[53.362,5.88572],[53.1822,6.2031045],[47.0439,7.6667845],[42.0077,7.0737335],[44.9134640404,6.6288546012],[43.3405011407,6.4619385353],[38.8452000214,7.4051324685],[39.286266676,6.9619431147],[40.6658433243,6.8184974077],[42.2,6.9]]}"
-  }
-}

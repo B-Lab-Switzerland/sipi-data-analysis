@@ -1,9 +1,0 @@
-{
-  "damid": 29946665,
-  "description": "Share of total population aged 15 to 88 years whose digital skills exceed basic skills",
-  "remark": "2021: break in the time series due to methodological adaptations Last update:  19.12.2023 Source: FSO \u2013 Omnibus survey on ICT \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2017\",\"2019\",\"2021\",\"2023\"],\"data\":[[39.7986],[46],[36.5911],[39.144]]}"
-  }
-}

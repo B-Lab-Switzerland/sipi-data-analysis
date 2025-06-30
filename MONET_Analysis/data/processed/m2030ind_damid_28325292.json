@@ -1,9 +1,0 @@
-{
-  "damid": 28325292,
-  "description": "Percentage of 2-year-old children inoculated with two doses of measles vaccine",
-  "remark": "Last update:  16.11.2023 Source: Federal Office of Public Health \u00a9 FSO 2023",
-  "data": {
-    "__type__": "DataFrame",
-    "data": "{\"columns\":[\"In percent\"],\"index\":[\"2005\\/07\",\"2008\\/10\",\"2011\\/13\",\"2014\\/16\",\"2017\\/19\",\"2020\\/22\"],\"data\":[[71],[82.56314],[85.694],[87.485],[89.677],[94]]}"
-  }
-}
