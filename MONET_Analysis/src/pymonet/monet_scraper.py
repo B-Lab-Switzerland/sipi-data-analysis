@@ -303,7 +303,7 @@ class DataFileLoader(object):
             self.processed_data_list.append(ordered_dict)
             
             # Write processed data to json file
-            self.processed_fpat.mkdir(parents=True, exist_ok=True)
+            self.processed_fpath.mkdir(parents=True, exist_ok=True)
             with open(self.processed_fpath / (file_name_root + ".json"), 'w') as f:
                 data_json_str = json.dump(serializable_data, f, indent=2)
             
