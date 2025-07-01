@@ -3,6 +3,8 @@ import requests
 from io import StringIO
 from html.parser import HTMLParser
 from collections import OrderedDict
+import hashlib
+from typing import Dict, List
 
 # 3rd party imports
 import pandas as pd
@@ -57,9 +59,36 @@ def deserialize_value(val):
         return pd.read_json(StringIO(val['data']), orient='split')
     return val
 
-def reorder_keys(d, key_order):
+def reorder_keys(d: Dict, key_order: List[str]) -> OrderedDict:
     """
     Reorders a dictionary d according to key_order and returns
     the result as an OrderedDict.
     """
     return OrderedDict((k, d[k]) for k in key_order if k in d)
+
+def json_hasher(jsonstr: str):
+    """
+    Converts a jsonstring into a SHA256 hash.
+    """
+    hash_obj = hashlib.sha256()
+    hash_obj.update(jsonstr.encode('utf-8'))
+    return hash_obj.hexdigest()
+
+def xlsx_hasher(xlsx_dict: Dict):
+    """
+    Converts an excel spreasheet (in the form of a 
+    dictionary as resulting from pd.read_excel) into
+    a SHA256 hash.
+    """
+    hash_obj = hashlib.sha256()
+
+    # Sort sheet names to ensure consistent order
+    for sheet_name, df in xlsx_dict.items():
+        sheet_content = df.to_csv(index=False)
+        # Update hash with sheet name to differentiate sheets
+        hash_obj.update(sheet_name.encode('utf-8'))
+        # Update hash with sheet content
+        hash_obj.update(sheet_content.encode('utf-8'))
+
+    # Return final hex digest
+    return hash_obj.hexdigest()
