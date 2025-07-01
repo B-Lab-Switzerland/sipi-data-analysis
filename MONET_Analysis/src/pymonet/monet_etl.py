@@ -211,9 +211,28 @@ class ETL_MonetIndicatorInfo(ETL):
         # for each data file related to the current indicator in question.
         # Transform this list into a pandas.DataFrame.
         self.df = pd.DataFrame(data_file_info_list)
-
+        
 class ETL_DataFile(object):
     """
+    Scrapes the data files for a given observable 
+    related to a MONET2030 indicators and processes
+    the downloaded raw files into a useable format.
+
+    The downloaded data comes in the form of excel
+    spreadsheets. These spreadsheets might contain
+    more than one worksheet and the tables are not in a
+    useful shape as the contain metainformation such as
+    descriptions of the observables or remarks about
+    the data gathering. This is fixed and cleaned up
+    in the transform method of this class in order
+    to produce proper data files (data frames). To avoid
+    losing the meta information the data is collected
+    in dictionaries that are stored as json files.
+
+    Methods
+    -------
+    self.extract() : 
+        Extracts the data from the web and 
     """
     def __init__(self, metainfo: pd.Series):
         self.metainfo = metainfo
