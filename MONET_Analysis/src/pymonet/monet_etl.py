@@ -92,20 +92,20 @@ class ETL_MonetIndicatorList(ETL):
         
         # Oragnize the MONET indicators into a DataFrame
         base_url = "https://www.bfs.admin.ch"
-        sdgs = [{"SDG": int(indicator.find_all("a")[0]["aria-label"].split(":")[0].split()[1].strip()),
-                "Topic": indicator.find_all("a")[0]["aria-label"].split(":")[1].strip(),
-                "Indicator": indicator.find_all("a")[1]["aria-label"],
-                "Hyperlink": base_url+indicator.find_all("a")[1]["href"].replace("content/",""),
-                "Agenda2030_relevant": 1 if len(indicator.find_all("img", {"title": "Agenda 2030: relevant"}))==1 else 0
+        sdgs = [{"sdg": int(indicator.find_all("a")[0]["aria-label"].split(":")[0].split()[1].strip()),
+                 "topic": indicator.find_all("a")[0]["aria-label"].split(":")[1].strip(),
+                 "indicator": indicator.find_all("a")[1]["aria-label"],
+                 "hyperlink": base_url+indicator.find_all("a")[1]["href"].replace("content/",""),
+                 "agenda2030_relevant": 1 if len(indicator.find_all("img", {"title": "Agenda 2030: relevant"}))==1 else 0
                 } for indicator in indicators]
         
         sdg_df = pd.DataFrame(sdgs)
     
         # Add a unique identifier to each indicator
-        sdg_df["SubtopicID"] = sdg_df.groupby("SDG").cumcount().add(1).astype(str)
-        sdg_df["ID"] = sdg_df.apply(lambda x: "MI-" + str(x["SDG"]) + "." + x["SubtopicID"], axis=1)
-        sdg_df.drop("SubtopicID", axis=1, inplace=True)
-        sdg_df.set_index("ID", inplace=True)
+        sdg_df["subtopic_id"] = sdg_df.groupby("sdg").cumcount().add(1).astype(str)
+        sdg_df["id"] = sdg_df.apply(lambda x: "monet-" + str(x["sdg"]) + "." + x["subtopic_id"], axis=1)
+        sdg_df.drop("subtopic_id", axis=1, inplace=True)
+        sdg_df.set_index("id", inplace=True)
         
         self.df = sdg_df
 
@@ -175,9 +175,9 @@ class ETL_MonetIndicatorInfo(ETL):
             # Make sure that per data file there is a unique damid.
             # If that's not the case, something went wrong.
             if len(damid_list)==0:
-                raise ValueError("No damid found data file.")
+                raise ValueError("No dam_id found data file.")
             elif len(damid_list)>1:
-                raise ValueError("More than one damid found for single data file.")
+                raise ValueError("More than one dam_id found for single data file.")
                 
             damid = re.search(r'\d+', damid_list[0]).group(0)
 
@@ -197,11 +197,11 @@ class ETL_MonetIndicatorInfo(ETL):
 
             # Arrange all the scraped information into a dictionary for each 
             # file ...
-            file_dict = {"damid": damid, 
-                         "Data_url": f"https://dam-api.bfs.admin.ch/hub/api/dam/assets/{damid}/master",
-                         "Observable": observable, 
-                         "Description": description,
-                         "Units": units,
+            file_dict = {"dam_id": damid, 
+                         "data_file_url": f"https://dam-api.bfs.admin.ch/hub/api/dam/assets/{damid}/master",
+                         "observable": observable, 
+                         "description": description,
+                         "units": units,
                         }
             # ... and append this dictionary to the previously defined
             # container list
@@ -223,7 +223,7 @@ class ETL_DataFile(object):
     def extract(self):
         """
         """
-        self.raw_spreadsheet = pd.read_excel(self.metainfo["Data_url"], sheet_name=None)
+        self.raw_spreadsheet = pd.read_excel(self.metainfo["data_file_url"], sheet_name=None)
         
     def transform(self):
         """

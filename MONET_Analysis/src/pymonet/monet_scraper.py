@@ -55,6 +55,9 @@ class IndicatorTableLoader(object):
 
         self.table = etl_mil.df
 
+        # Unset index (if any)
+        self.table = self.table.reset_index()
+
         # Write table to file
         Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
         self.table.reset_index().to_csv(self.fpath, index=False)
@@ -86,7 +89,7 @@ class IndicatorTableLoader(object):
         self.table = pd.read_csv(self.fpath)
         print("-> done!")
     
-    async def get_table(self):
+    async def get_table(self, force_download=False):
         """
         Reads MONET2030 indicator table into memory.
     
@@ -104,7 +107,7 @@ class IndicatorTableLoader(object):
         None
         """
         # Read data from disk if it already exists
-        if self.fpath.exists():
+        if (not force_download) & self.fpath.exists():
             self._read_table()
     
         # Otherwise, scrape data from WWW
@@ -162,14 +165,15 @@ class MetaInfoTableLoader(object):
             print(f"{counter}/{n_indicators}", end="\r")
         
             # ETL process for specific Monet2030 indicator
-            etl_mii = etl.ETL_MonetIndicatorInfo(indicator["Hyperlink"])
+            etl_mii = etl.ETL_MonetIndicatorInfo(indicator["hyperlink"])
             await etl_mii.extract()
             etl_mii.transform()
         
             # Augment data
-            etl_mii.df["Indicator"] = indicator["Indicator"]
-            etl_mii.df["SDG"] = indicator["SDG"]
-            etl_mii.df["Topic"] = indicator["Topic"]
+            etl_mii.df["indicator_id"] = indicator["id"]
+            etl_mii.df["sdg"] = indicator["sdg"]
+            etl_mii.df["topic"] = indicator["topic"]
+            etl_mii.df["indicator"] = indicator["indicator"]
             df_list.append(etl_mii.df)
         print("-> done!")
     
@@ -177,9 +181,15 @@ class MetaInfoTableLoader(object):
         # dataframe
         self.table = pd.concat(df_list, ignore_index=True)
 
+        # Resort columns
+        self.table = self.table[["dam_id", "indicator_id", "sdg", "topic", "indicator", "observable", "description", "units", "data_file_url"]]
+
+        # Unset index (if any)
+        self.table = self.table.reset_index()
+        
         # Write table to file
         Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
-        self.table.reset_index().to_csv(self.fpath, index=False)
+        self.table.to_csv(self.fpath, index=False)
     
     def _read_table(self):
         """
@@ -209,7 +219,7 @@ class MetaInfoTableLoader(object):
         self.table = pd.read_csv(self.fpath)
         print("-> done!")
     
-    async def get_table(self):
+    async def get_table(self, force_download=False):
         """
         Parameters
         ----------
@@ -220,7 +230,7 @@ class MetaInfoTableLoader(object):
         None
         """
         # Read data from disk if it already exists
-        if self.fpath.exists():    
+        if (not force_download) & self.fpath.exists():    
             self._read_table()
 
         # Otherwise, scrape data from WWW
@@ -230,10 +240,7 @@ class MetaInfoTableLoader(object):
             end = dt.now()
             elapsed = end - start
             print(f"Finished after {elapsed.seconds} seconds.")
-        
-            # Resort columns
-            self.table = self.table[["SDG", "Topic", "Indicator", "Observable", "Description", "Units", "damid", "Data_url"]]
-            
+
 
 class DataFileLoader(object):
     """
@@ -289,7 +296,7 @@ class DataFileLoader(object):
             etl_df.transform()
 
             # Prepare writing to file
-            file_name_root = f"m2030ind_damid_{str(row["damid"]).zfill(8)}"
+            file_name_root = f"m2030ind_damid_{str(row["dam_id"]).zfill(8)}"
 
             # Write raw data to file
             self.raw_fpath.mkdir(parents=True, exist_ok=True)
@@ -299,11 +306,11 @@ class DataFileLoader(object):
 
 
             # Augment/enrich processed data
-            etl_df.processed_data["observable"] = row["Observable"]
-            etl_df.processed_data["damid"] = row["damid"]
+            etl_df.processed_data["observable"] = row["observable"]
+            etl_df.processed_data["dam_id"] = row["dam_id"]
 
             # Serialize the processed data to json string
-            key_order = ["damid", "observable", "description", "remark", "data"]
+            key_order = ["dam_id", "observable", "description", "remark", "data"]
             ordered_dict = aux.reorder_keys(etl_df.processed_data, key_order)
             serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
 
@@ -350,7 +357,7 @@ class DataFileLoader(object):
             
         print("-> done!")
 
-    def get_data(self, force=False):
+    def get_data(self, force_download=False):
         """
         Reads MONET2030 indicator data tables into memory.
     
@@ -368,12 +375,12 @@ class DataFileLoader(object):
         None
         """
         # Read data from disk if it already exists
-        n_files_expected = self.metatable["damid"].nunique()
+        n_files_expected = self.metatable["dam_id"].nunique()
         paths_exist = self.raw_fpath.exists() and self.processed_fpath.exists()
         dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)\
                         &(len([f for f in self.processed_fpath.glob("*.json")])==n_files_expected)
         
-        if (not force) & paths_exist & dirs_not_empty:
+        if (not force_download) & paths_exist & dirs_not_empty:
             self._read_data()
     
         # Otherwise, scrape data from WWW
