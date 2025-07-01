@@ -5,6 +5,7 @@ import json
 from collections import OrderedDict
 from datetime import datetime as dt
 from typing import Dict
+from pathlib import Path
 
 # 3rd party imports
 import pandas as pd
@@ -51,9 +52,13 @@ class IndicatorTableLoader(object):
         await etl_mil.extract()
         etl_mil.transform()
         print("-> done!")
-    
+
         self.table = etl_mil.df
-    
+
+        # Write table to file
+        Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
+        self.table.reset_index().to_csv(self.fpath, index=False)
+        
     def _read_table(self) -> pd.DataFrame:
         """
         Reads MONET2030 indicator tabel from disk, assuming the
@@ -171,6 +176,10 @@ class MetaInfoTableLoader(object):
         # Concatenate all small dataframes in df_list to one big
         # dataframe
         self.table = pd.concat(df_list, ignore_index=True)
+
+        # Write table to file
+        Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
+        self.table.reset_index().to_csv(self.fpath, index=False)
     
     def _read_table(self):
         """
