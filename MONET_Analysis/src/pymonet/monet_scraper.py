@@ -14,6 +14,7 @@ import numpy as np
 # Local imports
 from pymonet import monet_etl as etl
 from pymonet import monet_aux as aux
+from pymonet import monet_consts as const
 
 class IndicatorTableLoader(object):
     """
@@ -55,12 +56,13 @@ class IndicatorTableLoader(object):
 
         self.table = etl_mil.df
 
+        # Write table to file
+        Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
+        self.table.to_csv(self.fpath)
+
         # Unset index (if any)
         self.table = self.table.reset_index()
 
-        # Write table to file
-        Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
-        self.table.reset_index().to_csv(self.fpath, index=False)
         
     def _read_table(self) -> pd.DataFrame:
         """
@@ -87,6 +89,8 @@ class IndicatorTableLoader(object):
             
         print("Reading from disk...")
         self.table = pd.read_csv(self.fpath)
+        if "index" in self.table.columns:
+            self.table.drop("index", axis=1, inplace=True)
         print("-> done!")
     
     async def get_table(self, force_download=False):
@@ -183,13 +187,14 @@ class MetaInfoTableLoader(object):
 
         # Resort columns
         self.table = self.table[["dam_id", "indicator_id", "sdg", "topic", "indicator", "observable", "description", "units", "data_file_url"]]
-
-        # Unset index (if any)
-        self.table = self.table.reset_index()
+        self.table.set_index("dam_id", inplace=True)
         
         # Write table to file
         Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
-        self.table.to_csv(self.fpath, index=False)
+        self.table.to_csv(self.fpath)
+
+        # Unset index (if any)
+        self.table = self.table.reset_index()
     
     def _read_table(self):
         """
@@ -217,6 +222,8 @@ class MetaInfoTableLoader(object):
             
         print("Reading from disk...")
         self.table = pd.read_csv(self.fpath)
+        if "index" in self.table.columns:
+            self.table.drop("index", axis=1, inplace=True)
         print("-> done!")
     
     async def get_table(self, force_download=False):
@@ -271,6 +278,7 @@ class DataFileLoader(object):
         self.processed_fpath = processed_data_path
         self.raw_data_list = []
         self.processed_data_list = []
+        self.log = {"raw": None, "processed": None}
 
     def _scrape_data(self):
         """
@@ -289,13 +297,40 @@ class DataFileLoader(object):
         """
         print("Scraping...")
         n_rows = len(self.metatable)
+
+        raw_log = {"file_id": [],
+                   "file_name": [],
+                   "file_hash": [],
+                   "dam_id": [],
+                   "download_date": [],
+                   "download_timestamp": [],
+                   }
+        processed_log = {"file_id": [],
+                         "file_name": [],
+                         "file_hash": [],
+                         "dam_id": [],
+                         "processed_date": [],
+                         "processed_timestamp": [],
+                         }
+        
         for counter, (idx, row) in enumerate(self.metatable.iterrows()):
             print(f"{(counter+1)}/{n_rows}", end="\r")
+
+            # download & process data
+            # -----------------------
             etl_df = etl.ETL_DataFile(row)
             etl_df.extract()
+            downloaded = dt.now(tz=const.zurich_tz)
             etl_df.transform()
+            
+            # Augment/enrich processed data
+            etl_df.processed_data["observable"] = row["observable"]
+            etl_df.processed_data["dam_id"] = row["dam_id"]
+            processed = dt.now(tz=const.zurich_tz)
 
-            # Prepare writing to file
+            # write data to file
+            # -------------------
+            # define file name root
             file_name_root = f"m2030ind_damid_{str(row["dam_id"]).zfill(8)}"
 
             # Write raw data to file
@@ -303,11 +338,6 @@ class DataFileLoader(object):
             with pd.ExcelWriter(self.raw_fpath / (file_name_root + ".xlsx")) as writer:
                 for name, df in etl_df.raw_spreadsheet.items():
                     df.to_excel(writer, sheet_name=name)
-
-
-            # Augment/enrich processed data
-            etl_df.processed_data["observable"] = row["observable"]
-            etl_df.processed_data["dam_id"] = row["dam_id"]
 
             # Serialize the processed data to json string
             key_order = ["dam_id", "observable", "description", "remark", "data"]
@@ -322,7 +352,34 @@ class DataFileLoader(object):
             self.processed_fpath.mkdir(parents=True, exist_ok=True)
             with open(self.processed_fpath / (file_name_root + ".json"), 'w') as f:
                 data_json_str = json.dump(serializable_data, f, indent=2)
-            
+
+            # collect logging info
+            # --------------------
+
+            raw_hash = aux.xlsx_hasher(etl_df.raw_spreadsheet)
+            raw_log["file_id"].append(f"{row["dam_id"]}_r")
+            raw_log["file_name"].append(file_name_root+".xlsx")
+            raw_log["file_hash"].append(raw_hash)
+            raw_log["dam_id"].append(row["dam_id"])
+            raw_log["download_date"].append(downloaded.strftime(format="%Y-%m-%d"))
+            raw_log["download_timestamp"].append(downloaded.strftime(format="%H:%M:%S"))
+
+            processed_hash = aux.json_hasher(json.dumps(serializable_data))
+            processed_log["file_id"].append(f"{row["dam_id"]}_p")
+            processed_log["file_name"].append(file_name_root+".json")
+            processed_log["file_hash"].append(processed_hash)
+            processed_log["dam_id"].append(row["dam_id"])
+            processed_log["processed_date"].append(processed.strftime(format="%Y-%m-%d"))
+            processed_log["processed_timestamp"].append(processed.strftime(format="%H:%M:%S"))
+
+        # Write log files
+        raw_log_df = pd.DataFrame(raw_log).set_index("file_id")
+        raw_log_df.to_csv(const.log_file_raw_data)
+        self.log["raw"] = raw_log_df
+        
+        processed_log_df = pd.DataFrame(processed_log).set_index("file_id")
+        processed_log_df.to_csv(const.log_file_processed_data)
+        self.log["processed"] = processed_log_df
         print("-> done!")
 
     def _read_data(self):
