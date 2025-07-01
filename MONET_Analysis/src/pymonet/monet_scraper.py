@@ -290,7 +290,7 @@ class DataFileLoader(object):
 
 
             # Augment/enrich processed data
-            etl_df.processed_data["obervable"] = row["Observable"]
+            etl_df.processed_data["observable"] = row["Observable"]
             etl_df.processed_data["damid"] = row["damid"]
 
             # Serialize the processed data to json string
@@ -341,7 +341,7 @@ class DataFileLoader(object):
             
         print("-> done!")
 
-    def get_data(self):
+    def get_data(self, force=False):
         """
         Reads MONET2030 indicator data tables into memory.
     
@@ -359,12 +359,12 @@ class DataFileLoader(object):
         None
         """
         # Read data from disk if it already exists
-        n_files_expected = len(self.metatable)
+        n_files_expected = self.metatable["damid"].nunique()
         paths_exist = self.raw_fpath.exists() and self.processed_fpath.exists()
         dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)\
                         &(len([f for f in self.processed_fpath.glob("*.json")])==n_files_expected)
         
-        if paths_exist & dirs_not_empty:
+        if (not force) & paths_exist & dirs_not_empty:
             self._read_data()
     
         # Otherwise, scrape data from WWW
