@@ -54,7 +54,7 @@ def deserialize_value(val):
     leaves the input value unchanged.
     """
     if isinstance(val, dict) and val.get('__type__') == 'DataFrame':
-        return pd.read_json(val['data'], orient='split')
+        return pd.read_json(StringIO(val['data']), orient='split')
     return val
 
 def reorder_keys(d, key_order):
