@@ -251,8 +251,9 @@ class MetaInfoTableLoader(object):
 
 class DataFileLoader(object):
     """
-    Class handling loading the actual MONET2030
-    indicator data into memory.
+    Class handling loading into memory and 
+    transforming the actual MONET2030 indicator
+    data .
 
     Parameters
     ----------
@@ -277,8 +278,8 @@ class DataFileLoader(object):
         self.raw_fpath = raw_data_path
         self.processed_fpath = processed_data_path
         self.raw_data_list = []
-        self.processed_data_list = []
-        self.log = {"raw": None, "processed": None}
+        self.processed_data_list = dict()
+        self.log = {"raw": None, "processed": dict()}
 
     def _scrape_data(self):
         """
@@ -305,13 +306,22 @@ class DataFileLoader(object):
                    "download_date": [],
                    "download_timestamp": [],
                    }
-        processed_log = {"file_id": [],
-                         "file_name": [],
-                         "file_hash": [],
-                         "dam_id": [],
-                         "processed_date": [],
-                         "processed_timestamp": [],
-                         }
+        processed_s1_log = {"file_id": [],
+                            "file_name": [],
+                            "file_hash": [],
+                            "dam_id": [],
+                            "processed_date": [],
+                            "processed_timestamp": [],
+                            }
+
+        processed_s2_log = {"file_id": [],
+                            "file_name": [],
+                            "file_hash": [],
+                            "metric_id": [],
+                            "dam_id": [],
+                            "processed_date": [],
+                            "processed_timestamp": [],
+                            }
         
         for counter, (idx, row) in enumerate(self.metatable.iterrows()):
             print(f"{(counter+1)}/{n_rows}", end="\r")
@@ -323,13 +333,24 @@ class DataFileLoader(object):
             downloaded = dt.now(tz=const.zurich_tz)
             etl_df.transform()
             
-            # Augment/enrich processed data
-            etl_df.processed_data["observable"] = row["observable"]
-            etl_df.processed_data["dam_id"] = row["dam_id"]
-            processed = dt.now(tz=const.zurich_tz)
+            # Augment/enrich processed data for all
+            # processing stages
+            processed = dict()
+            etl_df.processed_data["stage1"]["observable"] = row["observable"]
+            etl_df.processed_data["stage1"]["dam_id"] = row["dam_id"]
+            processed["stage1"] = dt.now(tz=const.zurich_tz)
 
+            for proc_dict in etl_df.processed_data["stage2"]:
+                proc_dict["observable"] = row["observable"]
+                proc_dict["dam_id"] = row["dam_id"]
+            processed["stage2"] = dt.now(tz=const.zurich_tz)
+
+            
+            # ==================
             # write data to file
-            # -------------------
+            # ==================
+            # 1) RAW DATA
+            # -----------
             # define file name root
             file_name_root = f"m2030ind_damid_{str(row["dam_id"]).zfill(8)}"
 
@@ -339,23 +360,10 @@ class DataFileLoader(object):
                 for name, df in etl_df.raw_spreadsheet.items():
                     df.to_excel(writer, sheet_name=name)
 
-            # Serialize the processed data to json string
-            key_order = ["dam_id", "observable", "description", "remark", "data"]
-            ordered_dict = aux.reorder_keys(etl_df.processed_data, key_order)
-            serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
-
             # Make data available
             self.raw_data_list.append(etl_df.raw_spreadsheet)
-            self.processed_data_list.append(ordered_dict)
-            
-            # Write processed data to json file
-            self.processed_fpath.mkdir(parents=True, exist_ok=True)
-            with open(self.processed_fpath / (file_name_root + ".json"), 'w') as f:
-                data_json_str = json.dump(serializable_data, f, indent=2)
 
-            # collect logging info
-            # --------------------
-
+            # Collect logging info
             raw_hash = aux.xlsx_hasher(etl_df.raw_spreadsheet)
             raw_log["file_id"].append(f"{row["dam_id"]}_r")
             raw_log["file_name"].append(file_name_root+".xlsx")
@@ -364,22 +372,87 @@ class DataFileLoader(object):
             raw_log["download_date"].append(downloaded.strftime(format="%Y-%m-%d"))
             raw_log["download_timestamp"].append(downloaded.strftime(format="%H:%M:%S"))
 
-            processed_hash = aux.json_hasher(json.dumps(serializable_data))
-            processed_log["file_id"].append(f"{row["dam_id"]}_p")
-            processed_log["file_name"].append(file_name_root+".json")
-            processed_log["file_hash"].append(processed_hash)
-            processed_log["dam_id"].append(row["dam_id"])
-            processed_log["processed_date"].append(processed.strftime(format="%Y-%m-%d"))
-            processed_log["processed_timestamp"].append(processed.strftime(format="%H:%M:%S"))
+            # Write log files
+            raw_log_df = pd.DataFrame(raw_log).set_index("file_id")
+            raw_log_df.to_csv(const.log_file_raw_data)
+            self.log["raw"] = raw_log_df
 
-        # Write log files
-        raw_log_df = pd.DataFrame(raw_log).set_index("file_id")
-        raw_log_df.to_csv(const.log_file_raw_data)
-        self.log["raw"] = raw_log_df
+            # 2) STAGE-1-PROCESSED DATA
+            # -------------------------
+            # REMARK: It seems very verbose and not adhering to the
+            # DRY principle to spell out the saving of each processing
+            # stage. However, it would be relatively convoluted and
+            # not very readable to put this in a for loop as every
+            # processing stage has to be treated slightly differently.
+            # For instance, the keys in the key_order list is slightly
+            # different.
+            stage1_data = etl_df.processed_data["stage1"]
+            
+            # Serialize the processed data to json string
+            key_order = ["dam_id", "observable", "description", "remark", "data"]
+            ordered_dict = aux.reorder_keys(stage1_data, key_order)
+            serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
+
+            # Make data available
+            self.processed_data_list["stage1"] = ordered_dict
+            
+            # Write processed data to json file
+            dirpath = self.processed_fpath / "stage_1"
+            dirpath.mkdir(parents=True, exist_ok=True)
+            with open(dirpath / (file_name_root + ".json"), 'w') as f:
+                data_json_str = json.dump(serializable_data, f, indent=2)
+
+            # Collect logging info
+            processed_hash = aux.json_hasher(json.dumps(serializable_data))
+            processed_s1_log["file_id"].append(f"{row["dam_id"]}_p")
+            processed_s1_log["file_name"].append(file_name_root+".json")
+            processed_s1_log["file_hash"].append(processed_hash)
+            processed_s1_log["dam_id"].append(row["dam_id"])
+            processed_s1_log["processed_date"].append(processed["stage1"].strftime(format="%Y-%m-%d"))
+            processed_s1_log["processed_timestamp"].append(processed["stage1"].strftime(format="%H:%M:%S"))
+
+            # Write log files
+            processed_log_s1_df = pd.DataFrame(processed_s1_log).set_index("file_id")
+            processed_log_s1_df.to_csv(const.log_file_processed_s1_data)
+            self.log["processed"]["stage1"] = processed_log_s1_df
+
+            # 3) STAGE-2-PROCESSED DATA
+            # -------------------------
+            stage2_data = etl_df.processed_data["stage2"]
         
-        processed_log_df = pd.DataFrame(processed_log).set_index("file_id")
-        processed_log_df.to_csv(const.log_file_processed_data)
-        self.log["processed"] = processed_log_df
+            key_order = ["metric_id", "dam_id", "observable", "description", "remark", "data"]
+
+            # Treat every metric individually
+            for metric_dict in stage2_data: 
+                # Adding the most granular metric id
+                metric_dict["metric_id"] = str(metric_dict["dam_id"]) + metric_dict["sub_id"]
+                ordered_dict = aux.reorder_keys(metric_dict, key_order)
+                serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
+    
+                # Make data available
+                self.processed_data_list["stage2"] = ordered_dict
+                
+                # Write processed data to json file
+                dirpath = self.processed_fpath / "stage_2"
+                dirpath.mkdir(parents=True, exist_ok=True)
+                with open(dirpath / (file_name_root + metric_dict["sub_id"] + ".json"), 'w') as f:
+                    data_json_str = json.dump(serializable_data, f, indent=2)
+
+                # Collect logging info
+                processed_hash = aux.json_hasher(json.dumps(serializable_data))
+                processed_s2_log["file_id"].append(f"{metric_dict["metric_id"]}")
+                processed_s2_log["file_name"].append(file_name_root+metric_dict["sub_id"]+".json")
+                processed_s2_log["file_hash"].append(processed_hash)
+                processed_s2_log["dam_id"].append(row["dam_id"])
+                processed_s2_log["metric_id"].append(metric_dict["metric_id"])
+                processed_s2_log["processed_date"].append(processed["stage2"].strftime(format="%Y-%m-%d"))
+                processed_s2_log["processed_timestamp"].append(processed["stage2"].strftime(format="%H:%M:%S"))
+    
+            # Write log files
+            processed_log_s2_df = pd.DataFrame(processed_s2_log).set_index("file_id")
+            processed_log_s2_df.to_csv(const.log_file_processed_s2_data)
+            self.log["processed"]["stage2"] = processed_log_s2_df
+        
         print("-> done!")
 
     def _read_data(self):
@@ -444,7 +517,7 @@ class DataFileLoader(object):
         else:
             self._scrape_data()
         
-
+        
 def main():
     """
     Main function scraping or reading the MONET2030

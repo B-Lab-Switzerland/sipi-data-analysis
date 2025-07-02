@@ -1,7 +1,7 @@
 # Stdlib imports
 import re
 from abc import ABC
-from typing import List
+from typing import List, Tuple, Dict
 
 # 3rd party importsimport requests
 # == Web Scraping
@@ -237,45 +237,250 @@ class ETL_DataFile(object):
     def __init__(self, metainfo: pd.Series):
         self.metainfo = metainfo
         self.raw_spreadsheet = None
-        self.processed_data = None
+        self.processed_data = dict()
 
     def extract(self):
         """
+        Downloads the actual data excel spreadsheets
+        from the web. Notice that this data is not
+        in data analysis-friendly format. This is 
+        fixed in the transform method below.
         """
         self.raw_spreadsheet = pd.read_excel(self.metainfo["data_file_url"], sheet_name=None)
+
+    def _return_worksheets(self):
+        """
+        Returns a list of work sheets in the spreadsheet
+        self.raw_spreadsheet.
+
+        Returns
+        -------
+        worksheets : List[str]
+            List of work sheet names.
+        """
+        worksheets = list(self.raw_spreadsheet.keys())
+        return worksheets
+
+    def _get_table_name(self, table) -> str:
+        """
+        Extracts the name of the MONET2030
+        indicator from the datafile itself.
+
+        The name is located in the top-left
+        cell (coordinates 0,0).
+
+        Parameters
+        ----------
+        table : pandas.DataFrame
+            The tabel in the zeroth worksheet
+            of self.raw_spreadsheet
+
+        Returns
+        -------
+        table_name : str
+            Name of the current table/observable
+        """
+        table_name = table.iloc[0,0]
+        return table_name
         
-    def transform(self):
+    def _get_table_description(self, table) -> str:
         """
+        Extracts the description of the MONET2030
+        indicator from the datafile itself.
+
+        The name is located in the cell with
+        coordinates (0,1).
+
+        Parameters
+        ----------
+        table : pandas.DataFrame
+            The tabel in the zeroth worksheet
+            of self.raw_spreadsheet
+
+        Returns
+        -------
+        table_description : str
+            Description of the current table/observable
         """
-        sheetnames = list(self.raw_spreadsheet.keys())
-    
-        table = self.raw_spreadsheet[sheetnames[0]]
-        name = table.iloc[0,0]
-        desc = table.iloc[1,0]
-        if desc is np.nan:
+        table_description = table.iloc[1,0]
+        return table_description
+
+    def _get_dataframe_and_remarks(self, table, description) -> Tuple[pd.DataFrame, str]:
+        """
+        Extracts the actual data (as a dataframe)
+        and possibly a remark from the table.
+
+        Parameters
+        ----------
+        table : pandas.DataFrame
+            The tabel in the zeroth worksheet
+            of self.raw_spreadsheet
+
+        description : str
+            Description of the current table/observable
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            DataFraem containing the actual data for the
+            current observable.
+
+        remark : str
+            Remarks found at the end of the spreadsheet.
+        """
+        # Check if there actually is a description
+        # or whether it's missing
+        if description is np.nan:
             column_headers_row = 2
         else:
             column_headers_row = 3
-        
+
+        # Get all the column names for the current data set
+        # They follow after the description and a blank line
         col_names = [v for v in table.iloc[column_headers_row,:].values if (v is not np.nan and len(v.strip())>0)]
-        
+
+        # Extract the data (at this point including additional
+        # information and footers)
         df = table.iloc[column_headers_row+1:,:]
-        
+
+        # Now let's put in the column names we extracted
+        # above.
         col_rename_dict = dict()
         col_rename_dict[df.columns[0]] = "Year"
         for i in range(1, len(col_names)+1):
             col_rename_dict[df.columns[i]] = col_names[i-1]
         df = df.rename(col_rename_dict, axis=1)
         df = df.set_index("Year")
-        
+
+        # Figure out where the actual data
+        # ends and where the footer starts
         for cntr, idx in enumerate(df.index):
             if idx!=idx:
                 stop = cntr
                 break
-        
+
+        # Use this info to extract the remarks (footer)
         remark = " ".join([str(txt) for txt in df.index[stop:] if txt==txt])
+
+        # Separate the actual data
         df = df.iloc[:stop,:]
+
+        return df, remark
+
+    def _stage1_transformation(self, table: pd.DataFrame) -> Dict:
+        """
+        Performs the stage 1 transformation of the
+        MONET2030 data.
+
+        Parameters
+        ----------
+        table : pandas.DataFrame
+            The tabel in the zeroth worksheet
+            of self.raw_spreadsheet
+
+        Returns
+        -------
+        s1_res : Dict
+            Dictionary containing the actual data as a dataframe,
+            the description and the remark about the data in that
+            dataframe.
+        """
+        # Get the name
+        name = self._get_table_name(table)
+
+        # Get the description
+        desc = self._get_table_description(table)
+
+        # Get the actual data table and remarks
+        df, remark = self._get_dataframe_and_remarks(table, desc)
+
+        # Give the columns a name
         df.columns.name = name
-        df
-    
-        self.processed_data =  {"data": df, "description": desc, "remark": remark}
+
+        # Collect the stage-1-transformation results and
+        # return
+        s1_res = {"data": df, "description": desc, "remark": remark}
+        return s1_res
+
+    def _stage2_transformation(self, obs_df: pd.DataFrame) -> List[pd.DataFrame]:
+        """
+        From a MONET2030 observable dataframe that 
+        contains several columns (subobservables), 
+        create one dataframe per subobservable/
+        column.
+
+        Parameters
+        ----------
+        obs_df : pandas.DataFrame
+            DataFrame containing all the data
+            for a specific MONET2030 observable.
+
+        Returns
+        -------
+        subobs_df_list : List[pandas.DataFrame]
+            List of single-column dataframes.
+            Each dataframe contains data about
+            one specific subobservable.
+        """
+
+        subobs_df_list = [] # metric
+        ci95_df_list = []   # 95% confidence intervals
+        
+        # Iterate over all columns and create
+        # a separate dataframe for each one
+        for col in obs_df.columns:
+            if "confidence interval" in col.lower():
+                ci95_df_list.append(obs_df[[col]])
+            else:
+                subobs_df_list.append(obs_df[[col]])
+
+        return subobs_df_list, ci95_df_list
+        
+    def transform(self):
+        """
+        Takes the data original data spreadsheets
+        and transforms them into analysis-friendly
+        format. This will create single-column pandas
+        dataframes - one for each individual atomic
+        observable.
+        """
+        # Get a list of work sheets in the spreadsheet
+        # self.raw_spreadsheet
+        sheetnames = self._return_worksheets()
+
+        # Extract the actual data table (which is the first sheet)
+        table = self.raw_spreadsheet[sheetnames[0]]
+
+        # -------
+        # STAGE 1
+        # -------
+        s1_trafo_results = self._stage1_transformation(table)
+        self.processed_data["stage1"] = s1_trafo_results
+        
+        # -------
+        # STAGE 2
+        # -------
+        observable_df = s1_trafo_results["data"]
+        subobservable_df_list, conf_intv_list = self._stage2_transformation(observable_df)
+
+        s2_trafo_results = []
+        for subobs_id, subobs in enumerate(subobservable_df_list):
+            s2_trafo_results.append({"data": subobs, 
+                                     "description": s1_trafo_results["description"], 
+                                     "remark": s1_trafo_results["remark"],
+                                     "type": "metric",
+                                     "sub_id": chr(97+subobs_id)+"_metr"
+                                    }
+                                   )
+        for ci_id, ci in enumerate(conf_intv_list):
+            s2_trafo_results.append({"data": ci, 
+                                     "description": s1_trafo_results["description"], 
+                                     "remark": s1_trafo_results["remark"],
+                                     "type": "confidence interval",
+                                     "sub_id": chr(97+ci_id)+"_ci"
+                                    }
+                                   )
+
+        self.processed_data["stage2"] = s2_trafo_results
+        
+        
