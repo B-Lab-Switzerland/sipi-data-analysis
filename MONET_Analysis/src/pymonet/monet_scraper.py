@@ -278,8 +278,10 @@ class DataFileLoader(object):
         self.raw_fpath = raw_data_path
         self.processed_fpath = processed_data_path
         self.raw_data_list = []
-        self.processed_data_list = dict()
+        self.processed_data_list = {"stage1": [], "stage2": []}
         self.log = {"raw": None, "processed": dict()}
+
+    def _compactify
 
     def _scrape_data(self):
         """
@@ -394,7 +396,7 @@ class DataFileLoader(object):
             serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
 
             # Make data available
-            self.processed_data_list["stage1"] = ordered_dict
+            self.processed_data_list["stage1"].append(ordered_dict)
             
             # Write processed data to json file
             dirpath = self.processed_fpath / "stage_1"
@@ -430,7 +432,7 @@ class DataFileLoader(object):
                 serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
     
                 # Make data available
-                self.processed_data_list["stage2"] = ordered_dict
+                self.processed_data_list["stage2"].append(ordered_dict)
                 
                 # Write processed data to json file
                 dirpath = self.processed_fpath / "stage_2"
