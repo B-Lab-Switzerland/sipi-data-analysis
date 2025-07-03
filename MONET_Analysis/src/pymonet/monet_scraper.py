@@ -344,10 +344,14 @@ class DataFileLoader(object):
         
         compact_metric_df = metr_df_list[0]
         for df in metr_df_list[1:]:
+            if df.columns[0] in compact_metric_df.columns:
+                continue
             compact_metric_df = compact_metric_df.merge(df, how="outer", left_index=True, right_index=True)
 
         compact_ci_df = ci_df_list[0]
         for df in ci_df_list[1:]:
+            if df.columns[0] in compact_ci_df.columns:
+                continue
             compact_ci_df = compact_ci_df.merge(df, how="outer", left_index=True, right_index=True)
 
         return compact_metric_df, compact_ci_df
@@ -592,7 +596,11 @@ class DataFileLoader(object):
         print("Reading stage-3-processed data from disk...")
         self.processed_data_list["stage3"]["metrics"] = pd.read_csv(self.processed_fpath / "stage_3" / const.compact_metrics_filename)
         self.processed_data_list["stage3"]["confidence_intervals"] = pd.read_csv(self.processed_fpath / "stage_3" / const.compact_cis_filename)
-            
+
+        self.processed_data_list["stage3"]["metrics"].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.processed_data_list["stage3"]["metrics"].set_index("Year", inplace=True)
+        self.processed_data_list["stage3"]["confidence_intervals"].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.processed_data_list["stage3"]["confidence_intervals"].set_index("Year", inplace=True)
         print("-> done!")
 
     def get_data(self, force_download=False):
@@ -615,9 +623,10 @@ class DataFileLoader(object):
         # Read data from disk if it already exists
         n_files_expected = self.metatable["dam_id"].nunique()
         paths_exist = self.raw_fpath.exists() and self.processed_fpath.exists()
+        print(f"paths_exist: {paths_exist}")
         dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)\
-                        &(len([f for f in self.processed_fpath.glob("*.json")])==n_files_expected)
-        
+                        &(len([f for f in (self.processed_fpath / "stage_1").glob("*.json")])==n_files_expected)
+        print(f"dirs_not_empty: {dirs_not_empty}")
         if (not force_download) & paths_exist & dirs_not_empty:
             self._read_data()
     
