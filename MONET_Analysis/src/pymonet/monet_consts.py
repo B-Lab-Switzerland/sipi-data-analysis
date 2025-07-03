@@ -12,6 +12,8 @@ log_file_processed_s1_data = Path("../data/metadata/processed_s1_data_log.csv")
 log_file_processed_s2_data = Path("../data/metadata/processed_s2_data_log.csv")
 raw_data_dir = Path("../data/raw/")
 processed_data_dir = Path("../data/processed/")
+compact_metrics_filename = "monet2030_metrics.csv" 
+compact_cis_filename = "monet2030_confintervals.csv"
 
 # URLs
 url_all_monet2030_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html'

@@ -425,12 +425,16 @@ class ETL_DataFile(object):
 
         subobs_df_list = [] # metric
         ci95_df_list = []   # 95% confidence intervals
-        
+    
         # Iterate over all columns and create
         # a separate dataframe for each one
-        for col in obs_df.columns:
+        for col_idx, col in enumerate(obs_df.columns):
             if "confidence interval" in col.lower():
-                ci95_df_list.append(obs_df[[col]])
+                # Rename the column to integrate the actual observable name
+                new_col_name = f"{col} ({obs_df.columns[col_idx-1]})"
+                new_df = pd.DataFrame(index = obs_df.index, columns = [new_col_name])
+                new_df[new_col_name] = obs_df.iloc[:, col_idx]
+                ci95_df_list.append(new_df)
             else:
                 subobs_df_list.append(obs_df[[col]])
 
@@ -472,6 +476,7 @@ class ETL_DataFile(object):
                                      "sub_id": chr(97+subobs_id)+"_metr"
                                     }
                                    )
+            
         for ci_id, ci in enumerate(conf_intv_list):
             s2_trafo_results.append({"data": ci, 
                                      "description": s1_trafo_results["description"], 
