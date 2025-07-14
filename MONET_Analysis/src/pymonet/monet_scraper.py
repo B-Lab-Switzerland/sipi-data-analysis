@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # Local imports
-from pymonet import monet_etl as etl
+from pymonet import monet_elt as elt
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
 
@@ -48,13 +48,13 @@ class IndicatorTableLoader(object):
         None
         """
         print("Scraping...")
-        # ETL process for Monet2030 indicator list
-        etl_mil = etl.ETL_MonetIndicatorList(self.url)
-        await etl_mil.extract()
-        etl_mil.transform()
+        # elt process for Monet2030 indicator list
+        elt_mil = elt.elt_MonetIndicatorList(self.url)
+        await elt_mil.extract()
+        elt_mil.transform()
         print("-> done!")
 
-        self.table = etl_mil.df
+        self.table = elt_mil.df
 
         # Write table to file
         Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
@@ -168,17 +168,17 @@ class MetaInfoTableLoader(object):
             counter += 1
             print(f"{counter}/{n_indicators}", end="\r")
         
-            # ETL process for specific Monet2030 indicator
-            etl_mii = etl.ETL_MonetIndicatorInfo(indicator["hyperlink"])
-            await etl_mii.extract()
-            etl_mii.transform()
+            # elt process for specific Monet2030 indicator
+            elt_mii = elt.elt_MonetIndicatorInfo(indicator["hyperlink"])
+            await elt_mii.extract()
+            elt_mii.transform()
         
             # Augment data
-            etl_mii.df["indicator_id"] = indicator["id"]
-            etl_mii.df["sdg"] = indicator["sdg"]
-            etl_mii.df["topic"] = indicator["topic"]
-            etl_mii.df["indicator"] = indicator["indicator"]
-            df_list.append(etl_mii.df)
+            elt_mii.df["indicator_id"] = indicator["id"]
+            elt_mii.df["sdg"] = indicator["sdg"]
+            elt_mii.df["topic"] = indicator["topic"]
+            elt_mii.df["indicator"] = indicator["indicator"]
+            df_list.append(elt_mii.df)
         print("-> done!")
     
         # Concatenate all small dataframes in df_list to one big
@@ -403,19 +403,19 @@ class DataFileLoader(object):
 
             # download & process data
             # -----------------------
-            etl_df = etl.ETL_DataFile(row)
-            etl_df.extract()
+            elt_df = elt.elt_DataFile(row)
+            elt_df.extract()
             downloaded = dt.now(tz=const.zurich_tz)
-            etl_df.transform()
+            elt_df.transform()
             
             # Augment/enrich processed data for all
             # processing stages
             processed = dict()
-            etl_df.processed_data["stage1"]["observable"] = row["observable"]
-            etl_df.processed_data["stage1"]["dam_id"] = row["dam_id"]
+            elt_df.processed_data["stage1"]["observable"] = row["observable"]
+            elt_df.processed_data["stage1"]["dam_id"] = row["dam_id"]
             processed["stage1"] = dt.now(tz=const.zurich_tz)
 
-            for proc_dict in etl_df.processed_data["stage2"]:
+            for proc_dict in elt_df.processed_data["stage2"]:
                 proc_dict["observable"] = row["observable"]
                 proc_dict["dam_id"] = row["dam_id"]
             processed["stage2"] = dt.now(tz=const.zurich_tz)
@@ -432,14 +432,14 @@ class DataFileLoader(object):
             # Write raw data to file
             self.raw_fpath.mkdir(parents=True, exist_ok=True)
             with pd.ExcelWriter(self.raw_fpath / (file_name_root + ".xlsx")) as writer:
-                for name, df in etl_df.raw_spreadsheet.items():
+                for name, df in elt_df.raw_spreadsheet.items():
                     df.to_excel(writer, sheet_name=name)
 
             # Make data available
-            self.raw_data_list.append(etl_df.raw_spreadsheet)
+            self.raw_data_list.append(elt_df.raw_spreadsheet)
 
             # Collect logging info
-            raw_hash = aux.xlsx_hasher(etl_df.raw_spreadsheet)
+            raw_hash = aux.xlsx_hasher(elt_df.raw_spreadsheet)
             raw_log["file_id"].append(f"{row["dam_id"]}_r")
             raw_log["file_name"].append(file_name_root+".xlsx")
             raw_log["file_hash"].append(raw_hash)
@@ -461,7 +461,7 @@ class DataFileLoader(object):
             # processing stage has to be treated slightly differently.
             # For instance, the keys in the key_order list is slightly
             # different.
-            stage1_data = etl_df.processed_data["stage1"]
+            stage1_data = elt_df.processed_data["stage1"]
             
             # Serialize the processed data to json string
             key_order = ["dam_id", "observable", "description", "remark", "data"]
@@ -493,7 +493,7 @@ class DataFileLoader(object):
 
             # 3) STAGE-2-PROCESSED DATA
             # -------------------------
-            stage2_data = etl_df.processed_data["stage2"]
+            stage2_data = elt_df.processed_data["stage2"]
         
             key_order = ["metric_id", "dam_id", "observable", "description", "remark", "data"]
 

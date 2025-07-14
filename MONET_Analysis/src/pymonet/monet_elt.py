@@ -19,18 +19,18 @@ from pymonet import monet_aux as aux
 from pymonet import monet_load as load
 
 
-class ETL(ABC):
+class ELT(ABC):
     """
     Abstract base class providing functionality for
-    data extraction, transformation, and loading (ETL).
+    data extraction, loading, and transformation (ELT).
 
     This abstract base class unifies the interface for
-    the ETL process of different MONET2030 related
+    the ELT process of different MONET2030 related
     webpages. These processes mainly differ in the
     transformation step which is why the transform
     method is an abstractmethod defined for each 
     child class separately. Each child class corresponds
-    to the ETL process of one of the specific MONET2030
+    to the ELT process of one of the specific MONET2030
     webpages.
     """
     def __init__(self, url: str):
@@ -78,7 +78,7 @@ class ETL(ABC):
         pass
 
 
-class ETL_MonetIndicatorList(ETL):
+class elt_MonetIndicatorList(ELT):
     """
     Scrapes a list of all MONET2030 indicators from the web.
     """
@@ -110,7 +110,7 @@ class ETL_MonetIndicatorList(ETL):
         self.df = sdg_df
 
 
-class ETL_MonetIndicatorInfo(ETL):
+class elt_MonetIndicatorInfo(ELT):
     """
     Scrapes information about a specific MONET2030 indicator
     as the urls pointing to all data files related to that
@@ -212,7 +212,7 @@ class ETL_MonetIndicatorInfo(ETL):
         # Transform this list into a pandas.DataFrame.
         self.df = pd.DataFrame(data_file_info_list)
         
-class ETL_DataFile(object):
+class elt_DataFile(object):
     """
     Scrapes the data files for a given observable 
     related to a MONET2030 indicators and processes
