@@ -2,61 +2,17 @@
 from typing import Tuple, Dict, List
 from itertools import combinations
 from pathlib import Path
+from datetime import datetime as dt
 
 # 3rd party imports
-import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa import seasonal
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel, Matern
 
-def visualize_data_availability(df: pd.DataFrame, 
-                                fpath: str=None, 
-                                x_label: str=None,
-                                y_label: str=None,
-                                title: str=None,
-                                **kwargs
-                               ) -> Tuple:
-    """
-    Visualize data availability by creating a non-nullity
-    matrix (black tiles = non-null values, white tiles = 
-    null values).
-    """
-    fig, ax = plt.subplots(figsize=(10,8))
-    sns.heatmap(df.isnull(), 
-                cbar=False,        # Hide color bar
-                cmap=['black', 'white'],  # black = not null, white = null
-                xticklabels = True,
-                yticklabels = True,
-                ax=ax)
-    
-    ax.grid(True)
-
-    # Set axis ticks (for x axis: plot only decades)
-    tick_locs = [i for i, col in enumerate(df.columns) if col % 10 == 0]
-    tick_labels = [str(col) for col in df.columns if col % 10 == 0]
-    
-    ax.set_xticks(tick_locs)
-    ax.set_xticklabels(tick_labels, rotation=45, fontsize=8)
-    
-    ax.set_yticks(range(len(df.index)))
-    ax.set_yticklabels(df.index, fontsize=5)
-
-    # Add axis lables
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-
-    # Add title
-    ax.set_title(title)
-
-    # Save plot if desired
-    if fpath:
-        fig.savefig(fpath)
-
-    plt.show()
-
-    # return
-    return fig, ax
 
 def interpolate_data(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -66,6 +22,33 @@ def interpolate_data(df: pd.DataFrame) -> pd.DataFrame:
     df_interp = df.astype(float).interpolate("cubicspline",axis="rows", limit_area="inside")
     return df_interp
 
+def fractional_years_to_datetime(fractional_years: pd.Series) -> pd.Series:
+    """
+    Convert fractional years to proper datetime format.
+
+    Converts a series of fractional years into a proper datatime
+    format consisting of the year and the months (the day is 
+    always set to 1, i.e. the first day of the month).
+
+    Example: 1988.833 --> 1988-10-01
+
+    Parameters
+    ----------
+    fractional_years : pandas.Series
+        Series containing all the fractional years to be
+        converted.
+
+    Returns
+    -------
+    dts : pandas.Series
+        Series containing the correct datetime-formatted
+        years/months.
+    """
+    int_years = fractional_years.astype(int)
+    months = (np.round((fractional_years - int_years)*12)+1).astype(int)
+    dts = pd.to_datetime({'year': int_years, 'month': months, 'day': 1 })
+    return dts
+    
 class DataCleaner(object):
     """
     Cleans the dataset passed as df. This class assumes
@@ -228,7 +211,243 @@ class DataCleaner(object):
             print(footer)
 
         return [c for c in sparse_columns]
+
+class DataImputer(object):
+    """
+    """
+    def __init__(self, data: pd.DataFrame):
+        self.df = data
+        self.measurements = dict()
+        self.predictions = dict()
+        
+    def fit_gp(self):
+        """
+        """
+        min_year = 2025
+        max_year = 1900
+        for counter, metric in enumerate(self.df.columns):
+            print(f"{counter+1}/{len(self.df.columns)}", end="\r")
             
+            # Measurements
+            metr_series = self.df[metric].dropna()
+            X = np.array([year for year in metr_series.keys()]).reshape(-1, 1)  # GP needs 2D inputs
+            y = np.array([val for val in metr_series.values]).ravel()
+
+            # Get year range [min_year, max_year]
+            if X.min() < min_year:
+                min_year = X.min()
+            if X.max() > max_year:
+                max_year = X.max()
+        
+            # Define a kernel: RBF (smoothness) + WhiteKernel (noise)
+            kernel = 1.0 * Matern(length_scale=3.3, nu=1.5)
+        
+            # Fit GP
+            gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, alpha=1e-10, normalize_y=True)
+            gp.fit(X, y)
+        
+            # Predict (grids have different ranges for different metrics, but all have equal spacing)
+            X_common = np.arange(X.min(), X.max() + 1.0/12, 1.0/12).reshape(-1, 1)
+            y_pred, y_std = gp.predict(X_common, return_std=True)
+        
+            # Gather info
+            self.measurements[metric] = [X,y]
+            self.predictions[metric] = [X_common, y_pred, y_std]
+
+        # Compile the results into a single dataframe
+        full_range = [np.round(i,2) for i in np.arange(min_year, max_year + 1.0/12, 1.0/12)]
+        self.gp_means = pd.DataFrame(index=full_range, 
+                                     columns=self.df.columns
+                                     )
+
+        self.gp_stds = pd.DataFrame(index=full_range, 
+                                    columns=self.df.columns
+                                   )
+
+        # Check that key/column names of self.df and self.measurements are aligned
+        assert set([metric for metric in self.predictions.keys()]) == set([col for col in self.df.columns])
+        
+        # Fill data into self.gp_means column by column
+        for metric, gp in self.predictions.items():
+            x = [np.round(i,2) for i in gp[0].flatten()]
+            y = gp[1]
+            e = gp[2]
+
+            # We first create a pandas.Series where each series has its own index
+            # This index is a *subset* of self.interp_df.index. This allows us
+            # to later just put in this series into the corresponding column of 
+            # self.interp_df and pandas automatically will take care of putting
+            # the series into the correct rows of the dataframe.
+            # REMARK: This approach obviously only works if the index of the Series
+            # is actually a subset of the index of the dataframe. To double-check
+            # this fact, we put yet another exception handler.
+            
+            gp_mean = pd.Series(y, index=x, name=metric)
+            gp_std = pd.Series(e, index=x, name=metric)
+
+            # checking the rows in gp_mean and self.gp_means are aligned
+            if set([i for i in gp_mean.index]).issubset(set([j for j in self.gp_means.index])):
+                pass
+            else:
+                raise ValueError("Indices are not aligned.")
+                #raise IndexAlignmentError()
+
+            # If the above test was passed, put the Series into the dataframe.
+            self.gp_means[metric] = gp_mean
+
+            # checking the rows in gp_std and self.gp_stds are aligned
+            if set([i for i in gp_std.index]).issubset(set([j for j in self.gp_stds.index])):
+                pass
+            else:
+                raise ValueError("Indices are not aligned.")
+                #raise IndexAlignmentError()
+
+            # If the above test was passed, put the Series into the dataframe.
+            self.gp_stds[metric] = gp_std
+           
+
+class TSAnalyzer(object):
+    """
+    """
+    def __init__(self, data: pd.DataFrame):
+        self.data = data
+        self.trend = None
+        self.residuals = None
+
+    def reset(self):
+        self.data = self.data
+        self.trend = None
+        self.residuals = None
+
+    def _stl(self, y, tw):
+        stl = seasonal.STL(y, trend=tw, seasonal=3)
+        decomposition = stl.fit()
+        trend = decomposition.trend
+        resid = y-decomposition.trend
+        return trend, resid
+
+    def _optimize_trend(self, y, name):
+        # Initialize variables 
+        p_vals = []
+        p_opt = np.inf
+        tw_opt = None
+
+        # Iterate
+        tw_grid = range(13, 501, 2)
+        start = dt.now()
+        for tw in tw_grid:
+            trend, resid = self._stl(y, tw)
+            adf=adfuller(resid)
+            p = adf[1]
+
+            # Update optimal values
+            if p < p_opt:
+                p_opt = p
+                tw_opt = tw
+                
+            p_vals.append(p)
+        end = dt.now()
+        elapsed = end - start
+        print(f"Trend for metric {name} optimized in {elapsed.seconds}s: (tw_opt = {tw_opt}, p_opt = {p_opt})", end="\r")
+
+        return pd.Series(p_vals, index=tw_grid, name=name), tw_opt, p_opt
+            
+        
+    def decompose(self, trend_window=None, optimize=True):
+        """
+        """
+        self.trend = pd.DataFrame(index = self.data.index, columns = self.data.columns)
+        self.residuals = pd.DataFrame(index = self.data.index, columns = self.data.columns)
+
+        optimality_list = []
+        start = dt.now()
+        for col in self.data.columns:
+            metric = self.data[col]
+            y = metric.dropna()
+            x = y.index
+
+            # OPTIMIZATION
+            # ============
+            optimal_tw = None
+            if optimize:
+                # Find optimal trend such that confidence in stationarity of remaining trend is maximal
+                opt_series, optimal_tw, opt_p = self._optimize_trend(y, col)
+                optimality_list.append(opt_series)
+            else:
+                if trend_window is None:
+                    raise ValueError("trend_window must be set when optimize = False.")
+                optimal_tw = trend_window
+            
+            # Decompose time series
+            trend, resid = self._stl(y, optimal_tw)
+            
+            self.trend.loc[x,col] = trend
+            self.residuals.loc[x,col] = resid
+        end = dt.now()
+        elapsed = end - start
+        print(f"Optimization completed in {elapsed.seconds}s.")
+
+        return pd.DataFrame(optimality_list)
+
+    def test_stationarity(self, alpha: float=0.05, data: pd.DataFrame=None):
+        """
+        """
+        non_stationary = []
+        stationary = []
+        
+        if data is None:
+            if self.residuals:
+                print("Checking stationarity for residuals (data = self.residuals)...")
+                data = self.residuals
+            else:
+                print("Checking stationarity for raw/interpolated data (i.e. not for residuals)...")
+                data = self.data
+            
+        for c in data.columns:
+            adf_result=adfuller(data.loc[:,c].dropna())
+
+            # rename components of adf_result variable for
+            # better readability
+            statistic = adf_result[0]  # value of test statistic
+            p = adf_result[1]  # p value
+            threshold = adf_result[4][f"{int(alpha*100)}%"]  # threshold for test statistic for given significance level alpha
+
+            # Check stationarity & significance
+            is_stationary = statistic<threshold
+            is_significant = p<alpha
+            
+            if is_significant and is_stationary:
+                stationary.append({"metric": c, "test": statistic, "p": p, f"max(test, p={int(alpha*100)}%)": threshold})
+            else:
+                non_stationary.append({"metric": c, "test": statistic, "p": p, f"max(test, p={int(alpha*100)}%)": threshold})
+        
+        print(f"# non-stationary time series: {len(non_stationary)}")
+        print(f"# stationary time series: {len(stationary)}")
+
+        return (pd.DataFrame(stationary), pd.DataFrame(non_stationary))
+
+    def optimize_trend(self, trend_window_grid, alpha):
+        """
+        Naïvely optimize the trend window length by maximizing
+        the ratio of stationary-to-non-stationary time series.
+        """
+        ratios = []
+        optimal_tw = min(trend_window_grid)
+        optimal_ratio = 0
+        for tw in trend_window_grid:
+            self.detrend(trend_window=tw)
+            stat, non_stat = self.test_stationarity(alpha=alpha, data=self.residuals)
+            ratio = stat/non_stat
+            ratios.append(ratio)
+
+            # update optimum
+            if ratio > optimal_ratio:
+                optimal_ratio = ratio
+                optimal_tw = tw
+                
+            self.reset()
+        
+    
 class CorrelationAnalysis(object):
     """
     """
