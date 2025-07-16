@@ -273,13 +273,11 @@ class DataFileLoader(object):
         from the raw data files but are more friendly
         for subsequent data analysis.
     """
-    def __init__(self, metatable: pd.DataFrame, raw_data_path: str, processed_data_path: str):
+    def __init__(self, metatable: pd.DataFrame, raw_data_path: str):
         self.metatable = metatable
         self.raw_fpath = raw_data_path
-        self.processed_fpath = processed_data_path
         self.raw_data_list = []
-        self.processed_data_list = {"stage1": [], "stage2": [], "stage3": dict()}
-        self.log = {"raw": None, "processed": dict()}
+        self.log = dict()
 
     def _standardize_colnames(self, df: pd.DataFrame, metric_id: str|List[str]) -> pd.DataFrame:
         """
@@ -408,10 +406,8 @@ class DataFileLoader(object):
         for file in sorted_xlsx_files:
             damid = file.as_posix().split("/")[-1].split(".")[0].split("_")[-1]
             xlsx = pd.read_excel(file, sheet_name=None)
-            for sheetname, df in xlsx.items():
-                if "Unnamed: 0" in df.columns:
-                    df = df.drop("Unnamed: 0", axis=1)
-            self.raw_data_list.append((damid, df))
+            xlsx = {sheetname: df.drop("Unnamed: 0", axis=1, errors="ignore") for (sheetname, df) in xlsx.items()}
+            self.raw_data_list.append((damid, xlsx))
 
         print("-> done!")
 
@@ -435,10 +431,9 @@ class DataFileLoader(object):
         """
         # Read data from disk if it already exists
         n_files_expected = self.metatable["dam_id"].nunique()
-        paths_exist = self.raw_fpath.exists() and self.processed_fpath.exists()
+        paths_exist = self.raw_fpath.exists()
         print(f"paths_exist: {paths_exist}")
-        dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)\
-                        &(len([f for f in (self.processed_fpath / "stage_1").glob("*.json")])==n_files_expected)
+        dirs_not_empty = (len([f for f in self.raw_fpath.glob("*.xlsx")])==n_files_expected)
         print(f"dirs_not_empty: {dirs_not_empty}")
         if (not force_download) & paths_exist & dirs_not_empty:
             self._read_data()
@@ -482,8 +477,7 @@ def main():
     # step. The data files are stored in raw as well as processed format.
     dfl = DataFileLoader(mitl.table,
                          const.raw_data_path,
-                         const.processed_data_path
-                        )
+                         )
     dfl.get_data()
 
 if __name__ == "__main__":
