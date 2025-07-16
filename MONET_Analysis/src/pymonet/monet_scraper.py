@@ -403,10 +403,16 @@ class DataFileLoader(object):
         # --------
         print("Reading raw data from disk...")
         sorted_xlsx_files = sorted([file for file in self.raw_fpath.glob("*.xlsx")])
-        self.raw_data_list = [(file.as_posix().split("/")[-1].split(".")[0].split("_")[-1], 
-                               pd.read_excel(file, sheet_name=None)
-                              ) for file in sorted_xlsx_files
-                             ]
+        self.raw_data_list = []
+        
+        for file in sorted_xlsx_files:
+            damid = file.as_posix().split("/")[-1].split(".")[0].split("_")[-1]
+            xlsx = pd.read_excel(file, sheet_name=None)
+            for sheetname, df in xlsx.items():
+                if "Unnamed: 0" in df.columns:
+                    df = df.drop("Unnamed: 0", axis=1)
+            self.raw_data_list.append(df)
+
         print("-> done!")
 
 
