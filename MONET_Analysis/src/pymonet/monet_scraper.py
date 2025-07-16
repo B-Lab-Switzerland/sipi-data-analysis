@@ -411,7 +411,7 @@ class DataFileLoader(object):
             for sheetname, df in xlsx.items():
                 if "Unnamed: 0" in df.columns:
                     df = df.drop("Unnamed: 0", axis=1)
-            self.raw_data_list.append(df)
+            self.raw_data_list.append((damid, df))
 
         print("-> done!")
 
