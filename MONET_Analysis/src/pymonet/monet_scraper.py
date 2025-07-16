@@ -319,43 +319,6 @@ class DataFileLoader(object):
 
         return df
         
-    def compactify(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Compactify all metrics from stage-2-processing
-        into a single table.
-        """
-        # Split metrics from confidence intervals
-        metrics = [d for d in self.processed_data_list["stage2"] if d["metric_id"].endswith("metr")]
-        cis = [d for d in self.processed_data_list["stage2"] if d["metric_id"].endswith("ci")]
-        
-        metr_df_list = []
-        ci_df_list = []
-        for metric_dict in metrics:
-            data = metric_dict["data"]
-            data = self._standardize_colnames(data, metric_dict["metric_id"])
-            data = self._integerize_year_ranges(data)
-            metr_df_list.append(data.copy())
-
-        for ci_dict in cis:
-            data = ci_dict["data"]
-            data = self._standardize_colnames(data, ci_dict["metric_id"])
-            data = self._integerize_year_ranges(data)
-            ci_df_list.append(data)
-        
-        compact_metric_df = metr_df_list[0]
-        for df in metr_df_list[1:]:
-            if df.columns[0] in compact_metric_df.columns:
-                continue
-            compact_metric_df = compact_metric_df.merge(df, how="outer", left_index=True, right_index=True)
-
-        compact_ci_df = ci_df_list[0]
-        for df in ci_df_list[1:]:
-            if df.columns[0] in compact_ci_df.columns:
-                continue
-            compact_ci_df = compact_ci_df.merge(df, how="outer", left_index=True, right_index=True)
-
-        return compact_metric_df, compact_ci_df
-        
     def _scrape_data(self):
         """
         Scrapes the MONET2030 indicator data from the WWW.
@@ -381,51 +344,20 @@ class DataFileLoader(object):
                    "download_date": [],
                    "download_timestamp": [],
                    }
-        processed_s1_log = {"file_id": [],
-                            "file_name": [],
-                            "file_hash": [],
-                            "dam_id": [],
-                            "processed_date": [],
-                            "processed_timestamp": [],
-                            }
-
-        processed_s2_log = {"file_id": [],
-                            "file_name": [],
-                            "file_hash": [],
-                            "metric_id": [],
-                            "dam_id": [],
-                            "processed_date": [],
-                            "processed_timestamp": [],
-                            }
         
         for counter, (idx, row) in enumerate(self.metatable.iterrows()):
             print(f"{(counter+1)}/{n_rows}", end="\r")
 
-            # download & process data
-            # -----------------------
+            # download data
+            # ------------
             elt_df = elt.elt_DataFile(row)
             elt_df.extract()
             downloaded = dt.now(tz=const.zurich_tz)
             elt_df.transform()
             
-            # Augment/enrich processed data for all
-            # processing stages
-            processed = dict()
-            elt_df.processed_data["stage1"]["observable"] = row["observable"]
-            elt_df.processed_data["stage1"]["dam_id"] = row["dam_id"]
-            processed["stage1"] = dt.now(tz=const.zurich_tz)
-
-            for proc_dict in elt_df.processed_data["stage2"]:
-                proc_dict["observable"] = row["observable"]
-                proc_dict["dam_id"] = row["dam_id"]
-            processed["stage2"] = dt.now(tz=const.zurich_tz)
-
-            
             # ==================
             # write data to file
             # ==================
-            # 1) RAW DATA
-            # -----------
             # define file name root
             file_name_root = f"m2030ind_damid_{str(row["dam_id"]).zfill(8)}"
 
@@ -452,96 +384,6 @@ class DataFileLoader(object):
             raw_log_df.to_csv(const.log_file_raw_data)
             self.log["raw"] = raw_log_df
 
-            # 2) STAGE-1-PROCESSED DATA
-            # -------------------------
-            # REMARK: It seems very verbose and not adhering to the
-            # DRY principle to spell out the saving of each processing
-            # stage. However, it would be relatively convoluted and
-            # not very readable to put this in a for loop as every
-            # processing stage has to be treated slightly differently.
-            # For instance, the keys in the key_order list is slightly
-            # different.
-            stage1_data = elt_df.processed_data["stage1"]
-            
-            # Serialize the processed data to json string
-            key_order = ["dam_id", "observable", "description", "remark", "data"]
-            ordered_dict = aux.reorder_keys(stage1_data, key_order)
-            serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
-
-            # Make data available
-            self.processed_data_list["stage1"].append(ordered_dict)
-            
-            # Write processed data to json file
-            dirpath = self.processed_fpath / "stage_1"
-            dirpath.mkdir(parents=True, exist_ok=True)
-            with open(dirpath / (file_name_root + ".json"), 'w') as f:
-                data_json_str = json.dump(serializable_data, f, indent=2)
-
-            # Collect logging info
-            processed_hash = aux.json_hasher(json.dumps(serializable_data))
-            processed_s1_log["file_id"].append(f"{row["dam_id"]}_p")
-            processed_s1_log["file_name"].append(file_name_root+".json")
-            processed_s1_log["file_hash"].append(processed_hash)
-            processed_s1_log["dam_id"].append(row["dam_id"])
-            processed_s1_log["processed_date"].append(processed["stage1"].strftime(format="%Y-%m-%d"))
-            processed_s1_log["processed_timestamp"].append(processed["stage1"].strftime(format="%H:%M:%S"))
-
-            # Write log files
-            processed_log_s1_df = pd.DataFrame(processed_s1_log).set_index("file_id")
-            processed_log_s1_df.to_csv(const.log_file_processed_s1_data)
-            self.log["processed"]["stage1"] = processed_log_s1_df
-
-            # 3) STAGE-2-PROCESSED DATA
-            # -------------------------
-            stage2_data = elt_df.processed_data["stage2"]
-        
-            key_order = ["metric_id", "dam_id", "observable", "description", "remark", "data"]
-
-            # Treat every metric individually
-            for metric_dict in stage2_data: 
-                # Adding the most granular metric id
-                metric_dict["metric_id"] = str(metric_dict["dam_id"]) + metric_dict["sub_id"]
-                ordered_dict = aux.reorder_keys(metric_dict, key_order)
-                serializable_data = {k: aux.serialize_value(v) for k, v in ordered_dict.items()}
-    
-                # Make data available
-                self.processed_data_list["stage2"].append(ordered_dict)
-                
-                # Write processed data to json file
-                dirpath = self.processed_fpath / "stage_2"
-                dirpath.mkdir(parents=True, exist_ok=True)
-                with open(dirpath / (file_name_root + metric_dict["sub_id"] + ".json"), 'w') as f:
-                    data_json_str = json.dump(serializable_data, f, indent=2)
-
-                # Collect logging info
-                processed_hash = aux.json_hasher(json.dumps(serializable_data))
-                processed_s2_log["file_id"].append(f"{metric_dict["metric_id"]}")
-                processed_s2_log["file_name"].append(file_name_root+metric_dict["sub_id"]+".json")
-                processed_s2_log["file_hash"].append(processed_hash)
-                processed_s2_log["dam_id"].append(row["dam_id"])
-                processed_s2_log["metric_id"].append(metric_dict["metric_id"])
-                processed_s2_log["processed_date"].append(processed["stage2"].strftime(format="%Y-%m-%d"))
-                processed_s2_log["processed_timestamp"].append(processed["stage2"].strftime(format="%H:%M:%S"))
-    
-            # Write log files
-            processed_log_s2_df = pd.DataFrame(processed_s2_log).set_index("file_id")
-            processed_log_s2_df.to_csv(const.log_file_processed_s2_data)
-            self.log["processed"]["stage2"] = processed_log_s2_df
-
-        # 4) STAGE-3-PROCESSED DATA
-        # -------------------------
-        compact_metrics, compact_cis = self.compactify()
-        dirpath = self.processed_fpath / "stage_3"
-        dirpath.mkdir(parents=True, exist_ok=True)
-
-        # Make data available
-        self.processed_data_list["stage3"]["metrics"] = compact_metrics
-        self.processed_data_list["stage3"]["confidence_intervals"] = compact_cis
-
-        # Write processed data to csv files
-        compact_metrics.to_csv(dirpath / const.compact_metrics_filename)
-        compact_cis.to_csv(dirpath / const.compact_cis_filename)
-        
         print("-> done!")
 
     def _read_data(self):
@@ -567,41 +409,6 @@ class DataFileLoader(object):
                              ]
         print("-> done!")
 
-        # Stage-1-processed data
-        # ----------------------
-        print("Reading stage-1-processed data from disk...")
-        sorted_json_files = sorted([file for file in (self.processed_fpath / "stage_1").glob("*.json")])
-        for file in sorted_json_files:
-            with open(file, 'r') as f:
-                loaded_dict = json.load(f)
-
-            self.processed_data_list["stage1"].append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
-            
-        print("-> done!")
-
-        # Stage-2-processed data
-        # ----------------------
-        print("Reading stage-2-processed data from disk...")
-        sorted_json_files = sorted([file for file in (self.processed_fpath / "stage_2").glob("*.json")])
-        for file in sorted_json_files:
-            with open(file, 'r') as f:
-                loaded_dict = json.load(f)
-
-            self.processed_data_list["stage2"].append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
-            
-        print("-> done!")
-
-        # Stage-3-processed data
-        # ----------------------
-        print("Reading stage-3-processed data from disk...")
-        self.processed_data_list["stage3"]["metrics"] = pd.read_csv(self.processed_fpath / "stage_3" / const.compact_metrics_filename)
-        self.processed_data_list["stage3"]["confidence_intervals"] = pd.read_csv(self.processed_fpath / "stage_3" / const.compact_cis_filename)
-
-        self.processed_data_list["stage3"]["metrics"].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.processed_data_list["stage3"]["metrics"].set_index("Year", inplace=True)
-        self.processed_data_list["stage3"]["confidence_intervals"].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.processed_data_list["stage3"]["confidence_intervals"].set_index("Year", inplace=True)
-        print("-> done!")
 
     def get_data(self, force_download=False):
         """
