@@ -63,7 +63,7 @@ class Processor(ABC):
         """
         # Read data from disk if it already exists
         
-        if self._is_done() & (not force):
+        if (not force) & self._is_done():
             self._read()
     
         # Otherwise, transform the raw data
@@ -439,7 +439,15 @@ class Stage2_Processor(Processor):
         self.log = pd.DataFrame(processed_s2_log.log_dict)
 
     def _read(self):
-        pass
+        print("Reading stage-2-processed data from disk...")
+        sorted_json_files = sorted([file for file in (self.current_stage_fpath).glob("*.json")])
+        for file in sorted_json_files:
+            with open(file, 'r') as f:
+                loaded_dict = json.load(f)
+
+            self.current_stage_data_list.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
+            
+        print("-> done!")
 
     def _is_done(self) -> bool:
         """
@@ -452,8 +460,130 @@ class Stage2_Processor(Processor):
 
         is_done = paths_exist & dirs_not_empty
         return is_done
-        
 
     def _save(self, fname, jsonstr):
         dir_path = self.current_stage_fpath
-        aux.json_dump(dir_path, fname, jsonstr)  
+        aux.json_dump(dir_path, fname, jsonstr)
+
+
+class Stage3_Processor(Processor):
+    """
+    """
+    def _standardize_colnames(self, df: pd.DataFrame, metric_id: str|List[str]) -> pd.DataFrame:
+        """
+        Standardizes column names by mapping the current column
+        name to the corresponding unique metric ID.
+        """
+        df = df.copy()
+        
+        # harmonize data types
+        if isinstance(metric_id,str):
+            metric_id = [metric_id]
+
+        if len([c for c in df.columns])!=len(metric_id):
+            display(df)
+            print("df.columns:", df.columns)
+            print("metric_id", metric_id)
+            raise ValueError("len(df) and len(metric_id) must be identical, or, "
+                             + "if metric_id is a string, then df can only have a "
+                             + "single column."
+                            )
+
+        for col, mid in zip(df.columns, metric_id):
+            df.rename({col: mid}, axis=1, inplace=True)
+
+        return df.copy()
+        
+    def _integerize_year_ranges(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Integerizes year ranges, i.e. year ranges such as
+        "1996/2000" are mapped to 1996.
+        """
+        df = df.copy()
+        if any(["/" in str(idx) for idx in df.index]):
+            df.index = [int(idx.split("/")[0].strip()) for idx in df.index]
+        
+        df.index = df.index.astype(int)
+
+        return df
+        
+    def compactify(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Compactify all metrics from stage-2-processing
+        into a single table.
+        """
+        # Split metrics from confidence intervals
+        metrics = [d for d in self.previous_stage_data_list if d["metric_id"].endswith("metr")]
+        cis = [d for d in self.previous_stage_data_list if d["metric_id"].endswith("ci")]
+        
+        metr_df_list = []
+        ci_df_list = []
+        for metric_dict in metrics:
+            data = metric_dict["data"]
+            data = self._standardize_colnames(data, metric_dict["metric_id"])
+            data = self._integerize_year_ranges(data)
+            metr_df_list.append(data.copy())
+
+        for ci_dict in cis:
+            data = ci_dict["data"]
+            data = self._standardize_colnames(data, ci_dict["metric_id"])
+            data = self._integerize_year_ranges(data)
+            ci_df_list.append(data)
+        
+        compact_metric_df = metr_df_list[0]
+        for df in metr_df_list[1:]:
+            if df.columns[0] in compact_metric_df.columns:
+                continue
+            compact_metric_df = compact_metric_df.merge(df, how="outer", left_index=True, right_index=True)
+
+        compact_ci_df = ci_df_list[0]
+        for df in ci_df_list[1:]:
+            if df.columns[0] in compact_ci_df.columns:
+                continue
+            compact_ci_df = compact_ci_df.merge(df, how="outer", left_index=True, right_index=True)
+
+        return compact_metric_df, compact_ci_df
+
+    def _transform(self):
+        """
+        """
+        compact_metrics, compact_cis = self.compactify()
+        
+        # Make data available
+        self.current_stage_data_list = [compact_metrics, compact_cis]
+
+        # Write processed data to csv files
+        self._save(const.compact_metrics_filename, compact_metrics)
+        self._save(const.compact_cis_filename, compact_cis)
+        
+        print("-> done!")
+
+    def _read(self):
+        print("Reading stage-3-processed data from disk...")
+        self.current_stage_data_list = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename)
+        self.current_stage_data_list = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
+
+        self.current_stage_data_list[0].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.current_stage_data_list[0].set_index("Year", inplace=True)
+        self.current_stage_data_list[1].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.current_stage_data_list[1].set_index("Year", inplace=True)
+        
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        """
+        paths_exist = self.current_stage_fpath.exists()
+        print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==2)
+        print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname, df):
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(dirpath / fname)
+        
+        
