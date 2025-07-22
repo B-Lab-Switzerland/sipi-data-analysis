@@ -20,7 +20,7 @@ project.
 ### In Progress
 
 - [ ] Adding per-capitals view to MONET analysis  
-
+- [ ] Extract three best and worst performing indicators
 ### Done ✓
 
 - [x] Implement 1st version of WISE data analysis 
