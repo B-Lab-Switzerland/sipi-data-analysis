@@ -8,6 +8,11 @@ project.
 ### Todo
 
 - [ ] Add scraper to automatically get list of MONET2030 key indicators
+- [ ] Add data scaler (in order to bring all data to same scale, e.g. [0,1])  
+- [ ] Compute summary statistics for each time series (mean, std, IQR, etc.)
+- [ ] Perform autocorrelation analysis
+- [ ] Check if time series can be clustered (cluster analysis, T-SNE, hierarchical clustering, etc.)
+- [ ] Complete documentation (in-code and external)
 
 ### In Progress
 
