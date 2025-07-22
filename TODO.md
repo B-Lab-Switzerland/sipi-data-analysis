@@ -8,6 +8,8 @@ project.
 ### Todo
 
 - [ ] Add scraper to automatically get list of MONET2030 key indicators
+- [ ] Add scraper for information about desired trends (should an indicator go up or down)?
+- [ ] Add scraper for indicator goals (what is the goal for MONET2030 indicator XY?)
 - [ ] Add data scaler (in order to bring all data to same scale, e.g. [0,1])  
 - [ ] Compute summary statistics for each time series (mean, std, IQR, etc.)
 - [ ] Perform autocorrelation analysis
