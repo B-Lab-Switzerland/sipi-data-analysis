@@ -560,8 +560,8 @@ class Stage3_Processor(Processor):
 
     def _read(self):
         print("Reading stage-3-processed data from disk...")
-        self.current_stage_data_list = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename)
-        self.current_stage_data_list = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
+        self.current_stage_data_list.append(pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename))
+        self.current_stage_data_list.append(pd.read_csv(self.current_stage_fpath / const.compact_cis_filename))
 
         self.current_stage_data_list[0].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
         self.current_stage_data_list[0].set_index("Year", inplace=True)
