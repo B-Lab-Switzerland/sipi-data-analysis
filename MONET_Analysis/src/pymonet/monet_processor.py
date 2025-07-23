@@ -427,8 +427,11 @@ class Stage1(Processor):
         """
         Read stage 1 data from disk if available.
         """
-        print("Reading stage-1-processed data from disk...")
-        sorted_json_files = sorted([file for file in (self.current_stage_fpath / "stage_1").glob("*.json")])
+        if self.verbosity > 0:
+            print("Reading stage-1-processed data from disk...")
+
+        self.output = []
+        sorted_json_files = sorted([file for file in (self.current_stage_fpath).glob("*.json")])
         for file in sorted_json_files:
             with open(file, 'r') as f:
                 loaded_dict = json.load(f)
@@ -633,6 +636,7 @@ class Stage2(Processor):
                                          "processed_timestamp": proc_dt.strftime(format="%H:%M:%S")})
     
 
+        # Make data available
         self.output = s2_trafo_results
     
         # Write log files
@@ -640,7 +644,9 @@ class Stage2(Processor):
         self.log = pd.DataFrame(processed_s2_log.log_dict)
 
     def _read(self):
-        print("Reading stage-2-processed data from disk...")
+        if self.verbosity > 0:
+            print("Reading stage-2-processed data from disk...")
+        self.output = []
         sorted_json_files = sorted([file for file in (self.current_stage_fpath).glob("*.json")])
         for file in sorted_json_files:
             with open(file, 'r') as f:
@@ -764,7 +770,8 @@ class Stage3(Processor):
         print("-> done!")
 
     def _read(self):
-        print("Reading stage-3-processed data from disk...")
+        if self.verbosity > 0:
+            print("Reading stage-3-processed data from disk...")
         self.output = [pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename),
                        pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
                       ]
@@ -803,19 +810,23 @@ class TransformationPipeline:
     def __init__(self, 
                  raw_data: List[Tuple[str, Dict]],
                  metatable: pd.DataFrame,
-                 force: int|bool = False,
+                 force_stage: int = 0,
                  verbosity: int = 0):
         self.raw_data = raw_data
         self.metatable = metatable
-        self.force = force
         self.stages = [Stage1(input_data=None, metatable=self.metatable, stage_id=1, verbosity=verbosity),
                        Stage2(input_data=None, metatable=self.metatable, stage_id=2, verbosity=verbosity),
                        Stage3(input_data=None, metatable=self.metatable, stage_id=3, verbosity=verbosity),
                       ]
         self.n_stages = len(self.stages)
+        self.verbosity = verbosity
 
-        if not(self.force in set(list(range(1,self.n_stages+1))+[True, False])):
-            raise ValueError(f"Parameter 'force' must either be a boolean or an integer between 1 and {self.n_stages+1}.")
+        self.force_dict = {stage_id: False for stage_id in range(1,self.n_stages+1)}
+        if force_stage > 0 and force_stage <= self.n_stages:
+            for stage_id in range(force_stage, self.n_stages+1):
+                self.force_dict[stage_id] = True
+        elif force_stage > self.n_stages:
+            raise ValueError(f"Value of 'force_stage' is higher than the number of stages in the pipeline ({force_stage}>{self.n_stages}).")
 
     def _run_stage(self, index: int):
         """
@@ -823,7 +834,7 @@ class TransformationPipeline:
         stage = self.stages[index]
 
         stage_is_done = stage._is_done()
-        force_stage = self.force if isinstance(self.force, bool) else self.force==index+1
+        force_stage = self.force_dict[index+1]
         
         if stage_is_done and not(force_stage):
             print(f"> Stage {index + 1} is done. Reading from disk.")
@@ -839,6 +850,8 @@ class TransformationPipeline:
                 print("Running prerequisite stage...")
                 stage.input = self._run_stage(index - 1)
 
+        if (index == 0 and not(stage_is_done)) or force_stage:
+            print(f">> Computing stage {index + 1}...")
         stage.get_data(force=force_stage)
             
         return stage.output
