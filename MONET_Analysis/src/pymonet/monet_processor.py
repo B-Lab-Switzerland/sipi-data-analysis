@@ -4,7 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import datetime as dt
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 from pathlib import Path
 
 # 3rd party imports
@@ -17,31 +17,68 @@ from pymonet import monet_consts as const
 from pymonet import monet_logger as logger
 
 class Processor(ABC):
-    def __init__(self, 
-                 previous_stage_data: List[Tuple[str, Dict]], 
-                 metatable: pd.DataFrame, 
-                 previous_stage_path: str, 
-                 current_stage_path: str
-                ):
-        self.metatable = metatable
-        self.damid2obs_map = metatable[["dam_id", "observable"]]\
-                                .set_index("dam_id")\
-                                .to_dict()["observable"]
-        self.previous_stage_fpath = previous_stage_path
-        self.current_stage_fpath = current_stage_path
-        self.previous_stage_data_list = previous_stage_data
-        self.current_stage_data_list = []
-        self.log = dict()
+    """
+    Abstract base class from which each data
+    transformation step for the MONE 2030 data
+    analysis will be subclassed.
 
-    def transform_data(self):
-        """Main method to transform data — checks whether to read or compute."""
-        if self._is_done():
-            self._read()
-        else:
-            self._transform()
-            self._save()
-            self._log()
+    A series of subclasses of the 'Processor' 
+    ABC can be used to transform the MONET 2030
+    indicator database downloaded in the form of
+    ill-formatted excel spreadsheets from the www
+    into nicely structured dataframes (which
+    eventually are processed at different levels,
+    including data cleaning, data imputation etc.)
+
+    Attributes
+    ----------
+    input : Any
+        Input data to be transformed.
+        The format is different depending
+        on the data processing stage.
+
+    metatable : pandas.DataFrame
+        DataFrame containing additional
+        metainformation about each MONET
+        2030 indicator.
+
+    stage_name : int
+        Enumerates the current stage.
+        Starts counting from 1.
     
+    Abstract methods
+    ----------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool:
+
+    Concrete methods
+    ----------------
+    get_data(force: bool) -> None
+    """
+    def __init__(self, 
+                 input_data: Any, 
+                 metatable: pd.DataFrame, 
+                 stage_id: int,
+                 verbosity: int
+                ):
+
+        # Input data
+        self.input = input_data
+        self.metatable = metatable
+        self.stage_id = stage_id
+
+        # Further variable declarations
+        self.output: Any = None  # This will ultimately store the final result
+        self.previous_stage_fpath: Path = const.processed_dir / f"stage_{stage_id-1}" if stage_id >= 1  else const.raw_dir
+        self.current_stage_fpath: Path = const.processed_dir / f"stage_{stage_id}"
+        self.log: Dict = dict()
+        self.damid2obs_map: pd.DataFrame = metatable[["dam_id", "observable"]]\
+                                                .set_index("dam_id")\
+                                                .to_dict()["observable"]
+        self.verbosity = verbosity
+
     @abstractmethod
     def _transform(self):
         pass
@@ -58,8 +95,27 @@ class Processor(ABC):
     def _is_done(self) -> bool:
         pass
 
-    def get_data(self, force=False):
+    def get_data(self, force: bool=False) -> Any:
         """
+        Main method to transform data.
+        
+        Checks whether to read data from disk or 
+        to compute it from previously executed
+        transformation steps.
+
+        Parameters
+        ----------
+        force : bool [default: False]
+            If True, forces recreation/recomputation
+            from previous data transformation stage
+            even if current stage data is available
+            on disk.
+
+        Returns
+        -------
+        output : Any
+            Data after application of current-stage
+            transformation logic.
         """
         # Read data from disk if it already exists
         
@@ -69,11 +125,56 @@ class Processor(ABC):
         # Otherwise, transform the raw data
         else:
             self._transform()
+
+        return self.output
     
-class Stage1_Processor(Processor):
+class Stage1(Processor):
     """
+    Convert raw data to json files.
+
+    The raw data consists of a list of 2-tuples, the first
+    element of which is the dam_id of the MONET 2030
+    observable and the second is a dictionary representing
+    the Excel spreadsheet (.xlsx) scraped from the WWW. These
+    spreadsheets are not formatted in an analysis-friendly way.
+    This class provides the functionality to convert these
+    spreadsheets to json strings that can be used for
+    further processing. The resulting json strings have the
+    following structure:
+
+    {
+     "dam_id": dam_id,
+     "observable": observable,
+     "description": desc,
+     "remark": remark,
+     "data": df
+    }
+
+    Therefore, the json strings not only contain the actual
+    indicator data but metadata as well.
+
+    Private Methods
+    ---------------
+    _return_worksheets(raw_spreadsheet: Dict[str, pandas.DataFrame]) -> List[str]
+    _get_table_name(table: pandas.DataFrame) -> str
+    _get_table_description(table: pandas.DataFrame) -> str
+    _get_dataframe_and_remarks(table: pandas.DataFrame,
+                               description: str
+                               ) -> Tuple[pandas.DataFrame, str]
+    _trf_single_file(dam_id: str, 
+                     raw_spreadsheet: Dict[str, pandas.DataFrame]
+                    ) -> Tuple[OrderedDict, str, datetime.datetime]
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    
+    Public Methods
+    --------------
+    get_data(force: bool) -> None
+        Is defined in parent ABC "Processor"
     """
-    def _return_worksheets(self, raw_spreadsheet):
+    def _return_worksheets(self, raw_spreadsheet: Dict[str, pd.DataFrame]) -> List[str]:
         """
         Returns a list of work sheets in the spreadsheet
         self.raw_spreadsheet.
@@ -86,7 +187,7 @@ class Stage1_Processor(Processor):
         worksheets = list(raw_spreadsheet.keys())
         return worksheets
 
-    def _get_table_name(self, table) -> str:
+    def _get_table_name(self, table: pd.DataFrame) -> str:
         """
         Extracts the name of the MONET2030
         indicator from the datafile itself.
@@ -108,7 +209,7 @@ class Stage1_Processor(Processor):
         table_name = table.iloc[0,0]
         return table_name
         
-    def _get_table_description(self, table) -> str:
+    def _get_table_description(self, table: pd.DataFrame) -> str:
         """
         Extracts the description of the MONET2030
         indicator from the datafile itself.
@@ -130,7 +231,10 @@ class Stage1_Processor(Processor):
         table_description = table.iloc[1,0]
         return table_description
 
-    def _get_dataframe_and_remarks(self, table, description) -> Tuple[pd.DataFrame, str]:
+    def _get_dataframe_and_remarks(self, 
+                                   table: pd.DataFrame,
+                                   description: str
+                                  ) -> Tuple[pd.DataFrame, str]:
         """
         Extracts the actual data (as a dataframe)
         and possibly a remark from the table.
@@ -192,8 +296,46 @@ class Stage1_Processor(Processor):
 
         return df, remark
 
-    def _trf_single_file(self, dam_id: str, raw_spreadsheet: Dict[str, pd.DataFrame]):
+    def _trf_single_file(self, 
+                         dam_id: str, 
+                         raw_spreadsheet: Dict[str, pd.DataFrame]
+                        ) -> Tuple[OrderedDict, str, dt]:
         """
+        Extracts meta information from spreadsheet and
+        singles out data.
+
+        Each spreadsheet does not only contain the numeric indicator
+        data but also additional meta information such as the name
+        of the indicator, a description, potentially a remark etc.
+        All this meta information must be stored separately from the
+        data for it to be analysis-friendly. This separation is
+        achieved in this method.
+
+        Parameters
+        ----------
+        dam_id : str
+            dam_id of the MONET 2030 observable reported on in
+            the variable raw_spreadsheet.
+            
+        raw_spreadsheet : Dict[str, pd.DataFrame]
+            Excel spreadsheet in the form of a python dictionary
+            (i.e. key-value pairs). The keys correspond to the
+            name of each worksheet and the values contain the
+            actual table content.
+            
+        Returns
+        -------
+        stage1_data : OrderedDict
+            Dictionary containing the data and meta data of
+            the current indicator.
+        
+        file_name_root : str
+            File name root used to store the processed version
+            of the current data.
+            
+        proc_dt : dt
+            Python timestamp at which the stage 1 data processing
+            of the current spreadsheet was completed.
         """
         observable = self.damid2obs_map[int(dam_id)]
         file_name_root = f"m2030ind_damid_{dam_id.zfill(8)}"
@@ -229,25 +371,24 @@ class Stage1_Processor(Processor):
 
         return stage1_data, file_name_root, proc_dt
 
-
     def _transform(self):
         """
         Performs the stage 1 transformation of the
         MONET2030 data.
 
-        Parameters
-        ----------
-        table : pandas.DataFrame
-            The tabel in the zeroth worksheet
-            of self.raw_spreadsheet
-
-        Returns
-        -------
-        s1_res : Dict
-            Dictionary containing the actual data as a dataframe,
-            the description and the remark about the data in that
-            dataframe.
+        Raises
+        ------
+        TypeError
+            If self.input is not of type 'list'.
         """
+        # Expects: input_data is List[Tuple[str, Dict[str, pd.DataFrame]]], i.e.
+        # a list of 2-tuples each of which contains a dam_id as the first entry
+        # and an actual dataframe/table as the second entry.
+        if not isinstance(self.input, list):
+            raise TypeError(f"self.input is of type '{type(self.input)}' but should be of type 'list'.")
+        self.output = []
+
+        # Setup logger
         processed_s1_log = logger.MonetLogger(["file_id",
                                                "file_name", 
                                                "file_hash", 
@@ -256,13 +397,12 @@ class Stage1_Processor(Processor):
                                                "processed_timestamp"
                                               ])
 
-        for counter, (dam_id, raw_file) in enumerate(self.previous_stage_data_list):
-            print(f"Downloading {(counter+1)}/{len(self.previous_stage_data_list)}", end="\r")
+        for counter, (dam_id, raw_file) in enumerate(self.input):
             # Process current file
             stage1_data, fname_root, proc_dt = self._trf_single_file(dam_id, raw_file)
             
             # Make data available
-            self.current_stage_data_list.append(stage1_data)   
+            self.output.append(stage1_data)   
 
             # Serialize the processed data to json string
             serializable_data = {k: aux.serialize_value(v) for k, v in stage1_data.items()}
@@ -283,9 +423,9 @@ class Stage1_Processor(Processor):
             processed_s1_log.write(const.log_file_processed_s1_data, index_key="file_id")
             self.log = pd.DataFrame(processed_s1_log.log_dict)
             
-    
     def _read(self):
         """
+        Read stage 1 data from disk if available.
         """
         print("Reading stage-1-processed data from disk...")
         sorted_json_files = sorted([file for file in (self.current_stage_fpath / "stage_1").glob("*.json")])
@@ -293,29 +433,90 @@ class Stage1_Processor(Processor):
             with open(file, 'r') as f:
                 loaded_dict = json.load(f)
 
-            self.current_stage_data_list.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
+            self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
             
         print("-> done!")
 
     def _is_done(self) -> bool:
         """
+        Checks if stage 1 data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
         """
         n_files_expected = self.metatable["dam_id"].nunique()
         paths_exist = self.current_stage_fpath.exists()
-        print(f"paths_exist: {paths_exist}")
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
         dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.json")])==n_files_expected)
-        print(f"dirs_not_empty: {dirs_not_empty}")
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
 
         is_done = paths_exist & dirs_not_empty
         return is_done
 
-    def _save(self, fname, jsonstr):
+    def _save(self, fname: str, jsonstr: str):
+        """
+        Writes stage-1-processed data (i.e. a json string)
+        to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        jsonstr : str
+            JSON string containing the processed data.
+        """
         dir_path = self.current_stage_fpath
         aux.json_dump(dir_path, fname, jsonstr)  
              
             
-class Stage2_Processor(Processor):
+class Stage2(Processor):
     """
+    Convert stage-1 JSON files to stage-2 JSON files.
+
+    The JSON files created in stage 1 still contain data fields
+    that potentially have multiple columns. If this is the case, 
+    this means that the MONET 2030 observable has actually several
+    sub-observables (called "metrics"). Stage 2 of the data
+    processing pipeline creates a separate JSON file for each
+    metric.
+    
+    The resulting json strings have the
+    following structure:
+
+    {
+     "metric_id": str,
+     "dam_id": str,
+     "observable": str,
+     "description": str, 
+     "remark": str,
+     "type": "metric"|"confidence interval",
+     "data": pandas.DataFrame
+    }
+
+    Therefore, the stage-2 JSON strings not only contain the actual
+    metric data but metadata as well.
+
+    Private Methods
+    ---------------
+    _create_metric_dfs(obs_df: pandas.DataFrame) -> List[pandas.DataFrame]
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    
+    Public Methods
+    --------------
+    get_data(force: bool) -> None
+        Is defined in parent ABC "Processor"
     """
     def _create_metric_dfs(self, obs_df: pd.DataFrame) -> List[pd.DataFrame]:
         """
@@ -371,7 +572,7 @@ class Stage2_Processor(Processor):
         # a separate dataframe for each one
 
         s2_trafo_results = []
-        for i, stage1 in enumerate(self.previous_stage_data_list):           
+        for i, stage1 in enumerate(self.input):           
             metric_df_list, ci95_df_list = self._create_metric_dfs(stage1["data"])
             
             for subobs_id, subobs in enumerate(metric_df_list):
@@ -432,7 +633,7 @@ class Stage2_Processor(Processor):
                                          "processed_timestamp": proc_dt.strftime(format="%H:%M:%S")})
     
 
-        self.current_stage_data_list = s2_trafo_results
+        self.output = s2_trafo_results
     
         # Write log files
         processed_s2_log.write(const.log_file_processed_s2_data, index_key="file_id")
@@ -445,7 +646,7 @@ class Stage2_Processor(Processor):
             with open(file, 'r') as f:
                 loaded_dict = json.load(f)
 
-            self.current_stage_data_list.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
+            self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
             
         print("-> done!")
 
@@ -454,9 +655,13 @@ class Stage2_Processor(Processor):
         """
         n_dam_ids = self.metatable["dam_id"].nunique()
         paths_exist = self.current_stage_fpath.exists()
-        print(f"paths_exist: {paths_exist}")
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
         dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.json")])>=n_dam_ids)
-        print(f"dirs_not_empty: {dirs_not_empty}")
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
 
         is_done = paths_exist & dirs_not_empty
         return is_done
@@ -466,7 +671,7 @@ class Stage2_Processor(Processor):
         aux.json_dump(dir_path, fname, jsonstr)
 
 
-class Stage3_Processor(Processor):
+class Stage3(Processor):
     """
     """
     def _standardize_colnames(self, df: pd.DataFrame, metric_id: str|List[str]) -> pd.DataFrame:
@@ -513,8 +718,8 @@ class Stage3_Processor(Processor):
         into a single table.
         """
         # Split metrics from confidence intervals
-        metrics = [d for d in self.previous_stage_data_list if d["metric_id"].endswith("metr")]
-        cis = [d for d in self.previous_stage_data_list if d["metric_id"].endswith("ci")]
+        metrics = [d for d in self.input if d["metric_id"].endswith("metr")]
+        cis = [d for d in self.input if d["metric_id"].endswith("ci")]
         
         metr_df_list = []
         ci_df_list = []
@@ -550,7 +755,7 @@ class Stage3_Processor(Processor):
         compact_metrics, compact_cis = self.compactify()
         
         # Make data available
-        self.current_stage_data_list = [compact_metrics, compact_cis]
+        self.output = [compact_metrics, compact_cis]
 
         # Write processed data to csv files
         self._save(const.compact_metrics_filename, compact_metrics)
@@ -560,13 +765,14 @@ class Stage3_Processor(Processor):
 
     def _read(self):
         print("Reading stage-3-processed data from disk...")
-        self.current_stage_data_list.append(pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename))
-        self.current_stage_data_list.append(pd.read_csv(self.current_stage_fpath / const.compact_cis_filename))
+        self.output = [pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename),
+                       pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
+                      ]
 
-        self.current_stage_data_list[0].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.current_stage_data_list[0].set_index("Year", inplace=True)
-        self.current_stage_data_list[1].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.current_stage_data_list[1].set_index("Year", inplace=True)
+        self.output[0].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.output[0].set_index("Year", inplace=True)
+        self.output[1].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        self.output[1].set_index("Year", inplace=True)
         
         print("-> done!")
 
@@ -574,9 +780,13 @@ class Stage3_Processor(Processor):
         """
         """
         paths_exist = self.current_stage_fpath.exists()
-        print(f"paths_exist: {paths_exist}")
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
         dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==2)
-        print(f"dirs_not_empty: {dirs_not_empty}")
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
 
         is_done = paths_exist & dirs_not_empty
         return is_done
@@ -586,4 +796,54 @@ class Stage3_Processor(Processor):
         dirpath.mkdir(parents=True, exist_ok=True)
         df.to_csv(dirpath / fname)
         
+
+class TransformationPipeline:
+    """
+    """
+    def __init__(self, 
+                 raw_data: List[Tuple[str, Dict]],
+                 metatable: pd.DataFrame,
+                 force: int|bool = False,
+                 verbosity: int = 0):
+        self.raw_data = raw_data
+        self.metatable = metatable
+        self.force = force
+        self.stages = [Stage1(input_data=None, metatable=self.metatable, stage_id=1, verbosity=verbosity),
+                       Stage2(input_data=None, metatable=self.metatable, stage_id=2, verbosity=verbosity),
+                       Stage3(input_data=None, metatable=self.metatable, stage_id=3, verbosity=verbosity),
+                      ]
+        self.n_stages = len(self.stages)
+
+        if not(self.force in set(list(range(1,self.n_stages+1))+[True, False])):
+            raise ValueError(f"Parameter 'force' must either be a boolean or an integer between 1 and {self.n_stages+1}.")
+
+    def _run_stage(self, index: int):
+        """
+        """
+        stage = self.stages[index]
+
+        stage_is_done = stage._is_done()
+        force_stage = self.force if isinstance(self.force, bool) else self.force==index+1
         
+        if stage_is_done and not(force_stage):
+            print(f"> Stage {index + 1} is done. Reading from disk.")
+        else:
+            if not(stage_is_done):
+                print(f"> Stage {index + 1} not done. ", end="")
+            if force_stage:
+                print(f"> Forcing recomputation of stage {index + 1}. ", end="")
+            if index == 0:
+                print("Starting from raw data...")
+                stage.input = self.raw_data
+            else:
+                print("Running prerequisite stage...")
+                stage.input = self._run_stage(index - 1)
+
+        stage.get_data(force=force_stage)
+            
+        return stage.output
+
+    def run(self):
+        """
+        """
+        return self._run_stage(len(self.stages)-1)
