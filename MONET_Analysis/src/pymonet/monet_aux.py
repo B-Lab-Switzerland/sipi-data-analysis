@@ -1,5 +1,6 @@
 # Stdlib imports
 import requests
+import json
 from io import StringIO
 from html.parser import HTMLParser
 from collections import OrderedDict
@@ -59,12 +60,6 @@ def deserialize_value(val):
         return pd.read_json(StringIO(val['data']), orient='split')
     return val
 
-def reorder_keys(d: Dict, key_order: List[str]) -> OrderedDict:
-    """
-    Reorders a dictionary d according to key_order and returns
-    the result as an OrderedDict.
-    """
-    return OrderedDict((k, d[k]) for k in key_order if k in d)
 
 def json_hasher(jsonstr: str):
     """
@@ -92,3 +87,10 @@ def xlsx_hasher(xlsx_dict: Dict):
 
     # Return final hex digest
     return hash_obj.hexdigest()
+
+def json_dump(dirpath, file, jsonstr):
+    """
+    """
+    dirpath.mkdir(parents=True, exist_ok=True)
+    with open(dirpath / file, 'w') as f:
+        data_json_str = json.dump(jsonstr, f, indent=2)
