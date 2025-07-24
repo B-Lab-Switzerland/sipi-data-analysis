@@ -11,6 +11,9 @@ project.
 - [ ] Add scraper to automatically get list of MONET2030 key indicators
 - [ ] Add scraper for information about desired trends (should an indicator go up or down)?
 - [ ] Add scraper for indicator goals (what is the goal for MONET2030 indicator XY?)
+- [ ] Data analysis for "Cercle Indicateur" (CI) data
+  - [ ] Add scraper for CI data (https://www.bfs.admin.ch/bfs/de/home/statistiken/nachhaltige-entwicklung/cercle-indicateurs.html)
+  - [ ] Analyze CI data
 - [ ] Improve data logging pipeline to keep save the data at every step along the data processing pipeline
 - [ ] Add a proper logger 
 - [ ] Augment/enhance/improve importance analysis of MONET metrics  
@@ -23,11 +26,12 @@ project.
 
 
 ### In Progress
-
+- [ ] Streamline data processing pipeline
 
 ### Done ✓
 
 - [x] Implement 1st version of WISE data analysis 
 - [x] Implement scraper for MONET2030 indicators 
 - [x] Adding per-capitals view to MONET analysis
-- [x] Extract three best and worst performing indicators 
+- [x] Extract three best and worst performing indicators
+
