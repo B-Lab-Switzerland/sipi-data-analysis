@@ -25,7 +25,7 @@ project.
 
 
 ### In Progress
-- [ ] Streamline data processing pipeline
+
 
 ### Done ✓
 
@@ -34,4 +34,5 @@ project.
 - [x] Adding per-capitals view to MONET analysis
 - [x] Extract three best and worst performing indicators
 - [x] Streamline data processing pipeline
-- [x] Create table keeping track of which values were imputed and which ones weren't.
+- [x] Create table keeping track of which values were imputed and which ones weren't. 
+- [x] Create a metric ID-to-name map  
