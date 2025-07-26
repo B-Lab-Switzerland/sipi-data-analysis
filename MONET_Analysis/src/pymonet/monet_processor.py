@@ -15,6 +15,7 @@ import numpy as np
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
 from pymonet import monet_logger as logger
+from sipi_da_utils import utils
 
 class Processor(ABC):
     """
@@ -59,6 +60,7 @@ class Processor(ABC):
     """
     def __init__(self, 
                  input_data: Any, 
+                 indicator_table: pd.DataFrame|None,
                  metatable: pd.DataFrame, 
                  stage_id: int,
                  verbosity: int
@@ -66,11 +68,13 @@ class Processor(ABC):
 
         # Input data
         self.input = input_data
+        self.indicators = indicator_table
         self.metatable = metatable
         self.stage_id = stage_id
 
         # Further variable declarations
         self.output: Any = None  # This will ultimately store the final result
+        self.additional_results: Dict[str, Any] = dict()
         self.previous_stage_fpath: Path = const.processed_dir / f"stage_{stage_id-1}" if stage_id >= 1  else const.raw_dir
         self.current_stage_fpath: Path = const.processed_dir / f"stage_{stage_id}"
         self.log: Dict = dict()
@@ -561,6 +565,8 @@ class Stage2(Processor):
 
     def _transform(self):
         """
+        Performs the stage 2 transformation of the
+        MONET2030 data.
         """
         processed_s2_log = logger.MonetLogger(["file_id",
                                                "file_name", 
@@ -644,6 +650,9 @@ class Stage2(Processor):
         self.log = pd.DataFrame(processed_s2_log.log_dict)
 
     def _read(self):
+        """
+        Read stage 2 data from disk if available.
+        """
         if self.verbosity > 0:
             print("Reading stage-2-processed data from disk...")
         self.output = []
@@ -658,6 +667,14 @@ class Stage2(Processor):
 
     def _is_done(self) -> bool:
         """
+        Checks if stage 2 data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
         """
         n_dam_ids = self.metatable["dam_id"].nunique()
         paths_exist = self.current_stage_fpath.exists()
@@ -673,12 +690,50 @@ class Stage2(Processor):
         return is_done
 
     def _save(self, fname, jsonstr):
+        """
+        Writes stage-2-processed data (i.e. a json string)
+        to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        jsonstr : str
+            JSON string containing the processed data.
+        """
         dir_path = self.current_stage_fpath
         aux.json_dump(dir_path, fname, jsonstr)
 
 
 class Stage3(Processor):
     """
+    Consolidates the time series and confidence
+    interval data stored in several JSON files
+    (after stage 2) into two dataframes (one for
+    the time series data, one for the confidence
+    intervals).
+
+    Each time series and confidence intervals set
+    translates to a column in the respective data-
+    frame. The rows of the dataframes correspond
+    to the year in which the metric/confidence
+    interval was measured.
+
+    These dataframes do not contain any meta-data.
+
+    Private Methods
+    ---------------
+    _standardize_colnames(df: pandas.DataFrame, metric_id: str|List[str]) -> pandas.DataFrame
+    _integerize_year_ranges(df: pandas.DataFrame) -> pandas.DataFrame:
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+
+    Public Methods
+    --------------
+    compactify() -> Tuple[pandas.DataFrame, pandas.DataFrame]
     """
     def _standardize_colnames(self, df: pd.DataFrame, metric_id: str|List[str]) -> pd.DataFrame:
         """
@@ -757,11 +812,22 @@ class Stage3(Processor):
 
     def _transform(self):
         """
+        Performs the stage 3 transformation of the
+        MONET2030 data.
+
+        The actual data from the stage-2 JSON files
+        is consolidated into two pandas.DataFrames:
+        one containing the actual metric values, the
+        other containing 95% confidence intervals.
+        In this step all meta-information is ignored.
+        In both dataframes each column refers to a
+        specific metric and each row to a year.
         """
         compact_metrics, compact_cis = self.compactify()
         
         # Make data available
-        self.output = [compact_metrics, compact_cis]
+        self.output = compact_metrics
+        self.additional_results["confidence_intervals"] = compact_cis
 
         # Write processed data to csv files
         self._save(const.compact_metrics_filename, compact_metrics)
@@ -770,21 +836,35 @@ class Stage3(Processor):
         print("-> done!")
 
     def _read(self):
+        """
+        Read stage 3 data from disk if available.
+        """
         if self.verbosity > 0:
             print("Reading stage-3-processed data from disk...")
-        self.output = [pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename),
-                       pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
-                      ]
+            
+        metr_df = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename),
+        ci_df = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
 
-        self.output[0].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.output[0].set_index("Year", inplace=True)
-        self.output[1].rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        self.output[1].set_index("Year", inplace=True)
+        metr_df.rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        metr_df.set_index("Year", inplace=True)
+        ci_df.rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
+        ci_df.set_index("Year", inplace=True)
+        
+        self.output = metr_df
+        self.additional_results["confidence_intervals"] = ci_df
         
         print("-> done!")
 
     def _is_done(self) -> bool:
         """
+        Checks if stage 3 data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
         """
         paths_exist = self.current_stage_fpath.exists()
 
@@ -799,6 +879,296 @@ class Stage3(Processor):
         return is_done
 
     def _save(self, fname, df):
+        """
+        Writes stage-3-processed data (i.e. a pandas.DataFrame)
+        to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the MONET2030 time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(dirpath / fname)
+
+
+class DataCleaning(Processor):
+    """
+    Data cleaning functionality.
+
+    Run through a set of different data cleaning
+    steps as explained in more detail in the
+    docstring of the _transform method.
+
+    Private methods
+    ---------------
+    _find_relevant_metrics(metrics_df: pandas.DataFrame) -> pandas.DataFrame
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    """
+    def _find_relevant_metrics(self, metrics_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filter for metrics that are relevant for agenda2030.
+
+        The list of MONET2030 indicators contains a flag whether
+        or not the indicators are agenda2030-relevant. Based on
+        this list, this method infers if the corresponding observables
+        and ultimately metrics are agend2030-relevant or not.
+
+        Parameters
+        ----------
+        metrics_df : pandas.DataFrame
+            A pandas.DataFrame containing all the MONET2030 metrics
+            (time series) as columns and the years at which these
+            time series were measured as rows.
+
+        Returns
+        -------
+        relevant_metrics_df : pandas.DataFrame
+            A pandas.DataFrame containing the time series of only
+            the agenda2030-relevant metrics.
+
+        Raises
+        ------
+        ValueError
+            If the consistency check fails (implying a bug).
+        """
+        # Merge the indicator table with the meta table (observables-level)
+        # in order to map which observables are agenda2030-relevant
+        complete_meta_df = self.indicators.merge(self.metatable, left_on="id", right_on="indicator_id")
+
+        # Now filter out all observables that are *not* agenda2030-relevant
+        irrelevant_observables = set(complete_meta_df.loc[complete_meta_df["agenda2030_relevant"]==0, "dam_id"].values)
+
+        # Based on the irrelevant observables, derive the irrelevant metrics
+        irrelevant_metrics = [c for c in metrics_df.columns if int(c.split("_")[0][:-1]) in irrelevant_observables]
+
+        # Consistency check
+        if set([int(m.split("_")[0][:-1]) for m in irrelevant_metrics]) != set(irrelevant_observables):
+            raise ValueError("Mismatch in irrelevant observables --> There is a bug in the code of the _find_irrelevant_metrics method!")
+
+        # Drop all those irrelevant metrics, resulting in a dataframe
+        # that only contains the relevant ones.¨
+        relevant_metrics_df = metrics_df.drop(irrelevant_metrics, axis=1).copy()
+        return relevant_metrics_df
+        
+    def _transform(self):
+        """
+        Clean the data.
+
+        First, a dataset-specific cleaning step is performed
+        in which only the metrics (columns) are retained that
+        are agenda2030-relevant.
+
+        Next, a series of generic data cleaning steps is
+        performed:
+        - de-duplication of rows
+        - removal of columns that have constant values
+        - application of a time window filter keeping only rows
+          corresponding to years inside that time window
+        - removal of columns that do not contain a minimum
+          number of data points (sparse columns)
+        """
+        # Perform dataset-specific cleaning
+        relevant_metrics_df = self._find_relevant_metrics(self.input)
+
+        # Perform generic cleaning steps
+        cleaner = utils.DataCleaner(relevant_metrics_df, verbose=self.verbosity)
+        duplicated_rows = cleaner.drop_duplicates()
+        constant_cols = cleaner.remove_constant_columns()
+        outside_years = cleaner.apply_time_filter(max_year = 2025)
+        sparse_cols = cleaner.drop_sparse_columns(n_notnull_min = 10)
+
+        # Make data available
+        self.output = cleaner.df
+
+        # Write processed data to csv files
+        self._save(const.clean_data_fname, cleaner.df)
+        
+    def _read(self):
+        """
+        Read clean data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading clean data from disk...")
+
+        self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("Year")
+            
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        Checks if stage 1 data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==1)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, df: pd.DataFrame):
+        """
+        Writes cleaned data (i.e. a pandas.DataFrame)
+        to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the MONET2030 time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(dirpath / fname) 
+
+
+class DataImputer(Processor):
+    """
+    Data imputation functionality.
+
+    Imputing missing values through simple linear
+    interpolation will lead to introduction of additional
+    spurious correlations (i.e. it would completely defeat
+    the point). Therefore, we'll have to resort to a more
+    sophisticated data imputation techniques: we'll use
+    Gaussian Process (GP) Models to model the time series
+    that can be evaluated on a common time grid for all
+    time series. GPs are a good choice because they come
+    with uncertainty information.
+
+    Private methods
+    ---------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    """    
+    def _determine_imputed(self, row: pd.Series) -> bool:
+        # Step 1: If the value in interp_tracker is null, it can't be interpolated
+        if pd.isnull(row["value"]):
+            return False
+        
+        year = row["year"]
+        metric = row["metric"]
+        
+        # Step 2: If value exists in monet_clean, it's not interpolated
+        if year in self.input.index and metric in self.input.columns:
+            monet_value = self.input.at[year, metric]
+            if pd.notnull(monet_value):
+                return False
+        
+        # Step 3: If monet_clean value is missing but interp_tracker["value"] exists => interpolated
+        return True
+        
+    def _transform(self):
+        """
+        Impute the data on a common time grid.
+
+        
+        """
+        # Perform data imputation using Gaussian Processes
+        di = utils.DataImputer(self.input)
+        di.fit_gp()
+
+        # Read out interpolation results
+        monet_interp = di.gp_means
+        monet_envlp = di.gp_stds
+        
+        # Create book keeping tables that keep track
+        # of which values were measured and which
+        # ones were imputed.
+        interp_tracker = monet_interp.reset_index()\
+                                   .rename({"index": "year"}, axis=1)\
+                                   .melt(id_vars="year", 
+                                         var_name='metric',
+                                         value_name='value'
+                                        )
+        interp_tracker["imputed"] = False
+        interp_tracker["method"] = "GPR"
+        
+        # Apply the logic
+        interp_tracker["imputed"] = interp_tracker.apply(self._determine_imputed, axis=1)
+
+        # Make data available
+        self.output = monet_interp
+        self.output.index.name = "Year"
+        self.additional_results["uncertainty_envelopes"] = monet_envlp
+        self.additional_results["interp_tracker"] = interp_tracker
+
+        # Write processed data to csv files
+        self._save(const.interp_data_fname, monet_interp)
+        self._save(const.envlp_data_fname, monet_envlp)
+        self._save(const.interp_tracker_fname, interp_tracker)
+        
+    def _read(self):
+        """
+        Read imputed data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading imputed data from disk...")
+
+        self.output = pd.read_csv(self.current_stage_fpath / const.interp_data_fname).set_index("Year")
+        self.additional_results["uncertainty_envelopes"] = pd.read_csv(self.current_stage_fpath / const.envlp_data_fname).set_index("Year")
+            
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        Checks if imputed data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==1)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, df: pd.DataFrame):
+        """
+        Writes imputed data (i.e. a pandas.DataFrame)
+        to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the MONET2030 time series data.
+        """
         dirpath = self.current_stage_fpath
         dirpath.mkdir(parents=True, exist_ok=True)
         df.to_csv(dirpath / fname)
@@ -806,17 +1176,135 @@ class Stage3(Processor):
 
 class TransformationPipeline:
     """
+    Put all the data transformation steps into a
+    streamlined pipeline, which offers a very clean
+    and easy-to-use interface through the "run"
+    method.
+
+    The pipeline is built as a stack of all transformation
+    stages. The "run" method is built with checkpointing
+    and resuming intelligence, i.e. the code checks
+    automatically what the latest transformation stage
+    stored on disk is, loads that data and only runs
+    the remaining steps. A user is, however, able to 
+    force the recomputation of transformations via
+    the force_stage argument. Notice that all stage
+    following the stage passed in the force_stage argument
+    will always be recomputed, too. Therefore, setting
+    force_stage=1 causes a complete recomputation of all
+    data transformation steps.
+
+    Parameters
+    ----------
+    raw_data : List[Tuple[str, Dict]]
+        Contains the raw MONET2030 data as downloaded
+        from the www. The tuples are of the format
+        (dam_id, excel_spreadsheet), where the excel
+        spreadsheet is a dictionary with (sheet_name,
+        data table) as key-value pairs.
+        
+    metatable : pandas.DataFrame
+        Contains the metainformation about the each
+        metric.
+
+
+    Optionals
+    ---------
+    force_stage : int [default = 0]
+        Integer (>=0) indicating if at all and if so
+        from which stage onwards the data transformation
+        is shall be force-recomputed.
+
+        Explanation of behaviour:
+        force_stage = 0: no transformation is force-recomputed
+        force_stage = i (>0): all stages >=i are force-recomputed
+
+        Notice that this means that if force_stage = 1,
+        then all stages are recomputed.
+        
+    verbosity : int [default = 0] 
+        Defines how verbose the output is. 0 means only the bare
+        minimum of output is print to std out. The higher the
+        value, the more output will be written to std out.
+
+
+    Attributes
+    ----------
+    self.raw : List[Tuple[str, Dict]]
+        See parameter raw_data.
+        
+    self.metatable : pandas.DataFrame
+        See parameter metatable.
+        
+    self.stages : List[Processor]
+        Contains the stack of all data transformation stages
+        (subclasses of Processor class)
+        
+    self.n_stages : int
+        Length of self.stages, number of stages in transformation
+        pipeline
+        
+    self.verbosity : int
+        See optional parameter verbosity.
+        
+    self.force_dict : Dict[int, bool]
+        A dictionary containing boolean values indicating
+        which transformation stages will be force-recomputed.
+        Depends on optional parameter force_stage.
+
+        Behavior:
+        force_stage = 1 => force_dict = {1: True, 2: True, 3: True, ...}
+        force_stage = 2 => force_dict = {1: False, 2: True, 3: True, ...}
+        force_stage = 3 => force_dict = {1: False, 2: False, 3: True, ...}
+
+        
+    Private methods
+    ---------------
+    _run_stage(index: int) -> Any
+
+    Public methods
+    --------------
+    run() -> Any
+        Trigger execution of transformation pipeline.    
     """
     def __init__(self, 
                  raw_data: List[Tuple[str, Dict]],
+                 indicator_table: pd.DataFrame,
                  metatable: pd.DataFrame,
                  force_stage: int = 0,
                  verbosity: int = 0):
         self.raw_data = raw_data
         self.metatable = metatable
-        self.stages = [Stage1(input_data=None, metatable=self.metatable, stage_id=1, verbosity=verbosity),
-                       Stage2(input_data=None, metatable=self.metatable, stage_id=2, verbosity=verbosity),
-                       Stage3(input_data=None, metatable=self.metatable, stage_id=3, verbosity=verbosity),
+        self.stages = [Stage1(input_data=None, 
+                              indicator_table = indicator_table,
+                              metatable=self.metatable, 
+                              stage_id=1, 
+                              verbosity=verbosity
+                             ),
+                       Stage2(input_data=None, 
+                              indicator_table = indicator_table,
+                              metatable=self.metatable, 
+                              stage_id=2, 
+                              verbosity=verbosity
+                             ),
+                       Stage3(input_data=None, 
+                              indicator_table = indicator_table,
+                              metatable=self.metatable,
+                              stage_id=3,
+                              verbosity=verbosity
+                             ),
+                       DataCleaning(input_data=None, 
+                              indicator_table = indicator_table,
+                              metatable=self.metatable,
+                              stage_id=4,
+                              verbosity=verbosity
+                             ),
+                       DataImputer(input_data=None, 
+                              indicator_table = indicator_table,
+                              metatable=self.metatable,
+                              stage_id=5,
+                              verbosity=verbosity
+                             ),
                       ]
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
@@ -828,8 +1316,32 @@ class TransformationPipeline:
         elif force_stage > self.n_stages:
             raise ValueError(f"Value of 'force_stage' is higher than the number of stages in the pipeline ({force_stage}>{self.n_stages}).")
 
-    def _run_stage(self, index: int):
+    def _run_stage(self, index: int) -> Any:
         """
+        By default, read in the most-processed, available data
+        from disk and runs only the remaining stages.
+        
+        This is a recursive function. By default, the code will
+        always check if data corresponding to the output of the
+        last processing stage in the "self.stages" stack is available
+        on disk. If so, this data will be loaded into memory and the
+        function exits. If not, the function keeps checking earlier
+        and earlier processing stages in the "self.stages" stack
+        recursively, until it finds a stage whose output data is available
+        on disk. This is a "checkpoint". The function will then resume
+        data transformation from that checkpoint, i.e. it will only
+        run the remaining transformation steps.
+
+        Parameters
+        ----------
+        index : int
+            Index of the stage currently being run.
+
+        Returns
+        -------
+        self.output : Any
+            The output of the current transformation stage. The datatype
+            of the output critically depends on the transformation stage.
         """
         stage = self.stages[index]
 
@@ -858,5 +1370,10 @@ class TransformationPipeline:
 
     def run(self):
         """
+        Trigger execution of transformation pipeline.
+
+        This is the one and only function representing
+        the user interface of the TransformationPipeline
+        class.
         """
         return self._run_stage(len(self.stages)-1)
