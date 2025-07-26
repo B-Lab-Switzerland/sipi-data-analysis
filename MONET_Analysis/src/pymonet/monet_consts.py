@@ -40,6 +40,7 @@ log_file_processed_s2_data = log_dir / "processed_s2_data_log.csv"
 
 # (Stage 2)
 # multiple JSON files stored in processed_dir / "stage_2"
+metric_id2name_fname = "metric_id_to_name_map.csv"
 
 # (Stage 3)
 compact_metrics_filename = "monet2030_metrics.csv" 

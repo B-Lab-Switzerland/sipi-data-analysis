@@ -563,6 +563,31 @@ class Stage2(Processor):
 
         return subobs_df_list, ci95_df_list
 
+    def _create_id2name_map(self, json_dict) -> pd.DataFrame:
+        """
+        Create a map from metric_ids to metric names.
+
+        Parameters
+        ----------
+        json_dict : Dict
+            Dictionary corresponding to the stage-2 JSON
+            string for each MONET2030 metric.
+
+        Returns
+        -------
+        id2name_map : pandas.DataFrame
+            Dataframe mapping the metric IDs to the metric
+            names (including some descriptions).
+        """
+        id2name_map = pd.DataFrame([{"metric_id": od["metric_id"], 
+                                     "metric_name": f"{od["observable"]} [{od["data"].columns[0]}]", 
+                                     "metric_description": od["description"]
+                                    } for od in json_dict
+                                   ]
+                                  )
+
+        return id2name_map.set_index("metric_id")
+
     def _transform(self):
         """
         Performs the stage 2 transformation of the
@@ -642,8 +667,13 @@ class Stage2(Processor):
                                          "processed_timestamp": proc_dt.strftime(format="%H:%M:%S")})
     
 
+        metric_id2name_map = self._create_id2name_map(s2_trafo_results)
+        # Save id-to-name map
+        metric_id2name_map.to_csv(self.current_stage_fpath / const.metric_id2name_fname)
+        
         # Make data available
         self.output = s2_trafo_results
+        self.additional_results["metric_id2name_map"] = metric_id2name_map
     
         # Write log files
         processed_s2_log.write(const.log_file_processed_s2_data, index_key="file_id")
