@@ -7,7 +7,6 @@ project.
 
 ### Todo
 
-- [ ] Create table keeping track of which values were imputed and which ones weren't. Include information about imputation method as well as uncertainty (if available)  
 - [ ] Add scraper to automatically get list of MONET2030 key indicators
 - [ ] Add scraper for information about desired trends (should an indicator go up or down)?
 - [ ] Add scraper for indicator goals (what is the goal for MONET2030 indicator XY?)
@@ -19,9 +18,12 @@ project.
 
 ### In Progress
 
-- [ ] Adding per-capitals view to MONET analysis  
-- [ ] Extract three best and worst performing indicators
+
 ### Done ✓
 
 - [x] Implement 1st version of WISE data analysis 
-- [x] Implement scraper for MONET2030 indicators  
+- [x] Implement scraper for MONET2030 indicators 
+- [x] Adding per-capitals view to MONET analysis
+- [x] Extract three best and worst performing indicators
+- [x] Streamline data processing pipeline
+- [x] Create table keeping track of which values were imputed and which ones weren't.  
