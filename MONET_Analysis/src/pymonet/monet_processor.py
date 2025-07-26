@@ -1114,6 +1114,7 @@ class DataImputer(Processor):
         self.output = monet_interp
         self.output.index.name = "Year"
         self.additional_results["uncertainty_envelopes"] = monet_envlp
+        self.additional_results["uncertainty_envelopes"].index.name = "Year"
         self.additional_results["interp_tracker"] = interp_tracker
 
         # Write processed data to csv files
@@ -1148,7 +1149,7 @@ class DataImputer(Processor):
 
         if self.verbosity > 0:
             print(f"paths_exist: {paths_exist}")
-        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==1)
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==3)
 
         if self.verbosity > 0:
             print(f"dirs_not_empty: {dirs_not_empty}")
