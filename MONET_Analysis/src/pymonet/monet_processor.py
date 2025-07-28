@@ -1016,6 +1016,7 @@ class DataCleaning(Processor):
         sparse_cols = cleaner.drop_sparse_columns(n_notnull_min = 10)
 
         # Make data available
+        cleaner.df.index.name = "Year"
         self.output = cleaner.df
 
         # Write processed data to csv files
