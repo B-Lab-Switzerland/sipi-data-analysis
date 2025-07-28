@@ -13,11 +13,16 @@ zurich_tz = pytz.timezone("Europe/Zurich")
 # ==========
 # Directories
 # -----------
+data_dir = Path("../data")
+meta_dir = data_dir / "metadata"
+raw_dir = data_dir / "raw"
+processed_dir = data_dir / "processed"
+log_dir = data_dir / "logs"
+
 results_dir = Path("../results")
-meta_dir = Path("../data/metadata")
-raw_dir = Path("../data/raw")
-processed_dir = Path("../data/processed")
-log_dir = Path("../data/logs")
+tsa_dir = results_dir / "time_series_analysis"
+corra_dir = results_dir / "correlation_analysis"
+perfa_dir = results_dir / "performance_analysis"
 
 # Meta files
 # ----------
@@ -56,17 +61,19 @@ interp_tracker_fname = "monet2030_interpolation_tracker.csv"
 
 # Result files
 # ------------
-non_redundant_obs_file = results_dir / "non_redundant_observables.csv"
-pruned_metrics_file = results_dir / "pruned_metrics.xlsx"
-top3_metrics_file = results_dir / "top3_metrics.xlsx"
-bottom3_metrics_file = results_dir / "bottom3_metrics.xlsx"
-top3_metrics_per_cap_file = results_dir / "top3_metrics_per_capital.xlsx"
-bottom3_metrics_per_cap_file = results_dir / "bottom3_metrics_per_capital.xlsx"
-key_indicator_performance_file = results_dir / "key_indicator_performance_ranking.xlsx"
+# (correlation analysis / corra_dir)
+non_redundant_obs_fpath = corra_dir / "non_redundant_observables.csv"
+pruned_metrics_fpath = corra_dir / "pruned_metrics.xlsx"
+all_corrmat_fpath = corra_dir / "corrmat_all.pdf"
+pruned_corrmat_fpath = corra_dir / "corrmat_pruned.pdf"
 
-all_corrmat_file = results_dir / "corrmat_all.pdf"
-pruned_corrmat_file = results_dir / "corrmat_pruned.pdf"
-n_key_indicators_per_performance_plot = results_dir / "n_key_indicators_per_performance_group.png"
+# (performance analysis / perfa_dir)
+top3_metrics_fpath = perfa_dir / "top3_metrics.xlsx"
+bottom3_metrics_fpath = perfa_dir / "bottom3_metrics.xlsx"
+top3_metrics_per_cap_fpath = perfa_dir / "top3_metrics_per_capital.xlsx"
+bottom3_metrics_per_cap_fpath = perfa_dir / "bottom3_metrics_per_capital.xlsx"
+key_indicator_performance_fpath = perfa_dir / "key_indicator_performance_ranking.xlsx"
+n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_performance_group.png"
 
 
 # ====

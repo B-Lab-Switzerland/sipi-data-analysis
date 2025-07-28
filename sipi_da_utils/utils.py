@@ -308,31 +308,122 @@ class DataImputer(object):
 
 class TSAnalyzer(object):
     """
+    Time Series Analyzer.
+
+    
     """
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self, data: pd.DataFrame, dirpath: Path|None=None):
         self.data = data
         self.trend = None
         self.residuals = None
+        self.optimal_stl_df = None
+        self.pvalues_df = None
+        self.dirpath = dirpath
+        
+        # Define output filenames
+        self.save = False
+        if dirpath:
+            self.dirpath.mkdir(parents=True, exist_ok=True)
+            self.save = True
+            
+            self.p_values_fpath = dirpath / "stl_p_values.csv" 
+            self.optimal_stl_info_fpath = dirpath / "optimal_stl.csv"
+            self.trends_fpath = dirpath / "trends.csv"
+            self.residuals_fpath = dirpath / "residuals.csv"
+            self.stationary_ts_fpath = dirpath / "stationary.csv"
+            self.non_stationary_ts_fpath = dirpath / "non_stationary.csv"
 
     def reset(self):
+        """
+        Resets values of instance attributes
+        without the need of re-initialization.
+        """
         self.data = self.data
         self.trend = None
         self.residuals = None
+        self.optimal_stls = None
+        self.pvalues_df = None
 
-    def _stl(self, y, tw):
-        stl = seasonal.STL(y, trend=tw, seasonal=3)
+    def _stl(self, y: pd.Series, tw: int) -> Tuple[pd.Series, pd.Series]:
+        """
+        Wrapper for the statsmodels STL functionality.
+
+        Initializes an STL instance, fits it, extracts
+        the trend and from there computes the residuals.
+
+        Parameters
+        ----------
+        y : pandas.Series
+            Pandas.Series containing the time series to be
+            analyzed. Make sure the row index of y has a
+            periodicity or is of a data type that allows
+            for the inferral of a periodicity.
+
+        tw : int
+            Smoothing window length for LOESS in STL.
+
+        Returns
+        -------
+        trend : pandas.Series
+            Trend of input-time series y as extracted by
+            STL.
+            
+        resid : pandas.Series
+            Residuals remaining after subtracting the
+            trend form the input-time series y.
+        """
+        stl = seasonal.STL(y, trend=tw)
         decomposition = stl.fit()
         trend = decomposition.trend
         resid = y-decomposition.trend
         return trend, resid
 
-    def _optimize_trend(self, y, name):
+    def _optimize_trend(self, y: pd.Series, name: str) -> Tuple[pd.Series, int, float]:
+        """
+        Compute optimal smoothing window length for
+        STL-based time series decomposition.
+
+        Iterate over a list of smoothing window lengths.
+        For each window length, perform an STL-based
+        time series decomposition and compute an augmented
+        Dickey-Fuller (ADF) test for the residuals. The
+        smoothing window length minimizing this p-value (i.e.
+        maximizing the confidence in the residuals being
+        stationary) is considered the optimal smoothing window
+        length.
+
+        Parameters
+        ----------
+        y : pandas.Series
+            Pandas.Series containing the time series to be
+            analyzed. Make sure the row index of y has a
+            periodicity or is of a data type that allows
+            for the inferral of a periodicity.
+            
+        name : str
+            Name of the time series
+
+        Returns
+        -------
+        pval_series : pandas.Series
+            Pandas.Series containing the p-values of the
+            ADF test for a given metric and for all the 
+            tested smoothing window lengths.
+            
+        tw_opt : int
+            Smoothing window length found to be optimal with
+            respect to the p-value of the ADF test.
+        
+        p_opt : float
+            Optimal (minimal) p-value found among all ADF
+            tests.
+        """
         # Initialize variables 
         p_vals = []
         p_opt = np.inf
         tw_opt = None
 
-        # Iterate
+        # Iterate over possible smoothing window lengths
         tw_grid = range(13, 501, 2)
         start = dt.now()
         for tw in tw_grid:
@@ -350,16 +441,59 @@ class TSAnalyzer(object):
         elapsed = end - start
         print(f"Trend for metric {name} optimized in {elapsed.seconds}s: (tw_opt = {tw_opt}, p_opt = {p_opt})", end="\r")
 
-        return pd.Series(p_vals, index=tw_grid, name=name), tw_opt, p_opt
+        pval_series = pd.Series(p_vals, index=tw_grid, name=name)
+
+        return pval_series, tw_opt, p_opt
             
-        
-    def decompose(self, trend_window=None, optimize=True):
+    def _decompose(self,
+                   trend_window: int|None=None,
+                   optimize: bool=True) -> pd.DataFrame:
         """
+        Decompose time series into trend and residual.
+
+        Each time series is decomposed individually using STL.
+        Specifically, the trend is estimated using LOESS (locally
+        estimated scatterplot smoothing). The smoothing window
+        is treated as a hyperparameter, which can be optimized.
+        The optimal smoothing window is defined as the window
+        that leads to the maximal confidence in the stationarity
+        of the remaining trend.
+        **REMARK:** This optimality definition is based on the
+        assumption that the trend of all time series is stationary.
+
+        Optionals
+        ---------
+        trend_window : int [default: None]
+            Length of smoothing window for trend inference
+
+        optimize : bool [default: True]
+            Whether or not the trend smoothing window
+            should be optimized.
+
+        dirpath : Path [default: None]
+            Directory path to where the result files
+            should be written. If None results will
+            not be written to disk at all.
+
+        Returns
+        -------
+        pvalues_df : pd.DataFrame
+            DataFrame containing p-value of augmented Dickey-
+            Fuller test performed for estimated trend given
+            the smoothing window length indicated by column
+            header.
+
+        Raises
+        ------
+        ValueError
+            If optimize is set to False and trend_window
+            is None.
         """
         self.trend = pd.DataFrame(index = self.data.index, columns = self.data.columns)
         self.residuals = pd.DataFrame(index = self.data.index, columns = self.data.columns)
 
-        optimality_list = []
+        pvalues_list = []
+        optimal_stl_info = []
         start = dt.now()
         for col in self.data.columns:
             metric = self.data[col]
@@ -368,18 +502,22 @@ class TSAnalyzer(object):
 
             # OPTIMIZATION
             # ============
-            optimal_tw = None
+            opt_tw = None
             if optimize:
                 # Find optimal trend such that confidence in stationarity of remaining trend is maximal
-                opt_series, optimal_tw, opt_p = self._optimize_trend(y, col)
-                optimality_list.append(opt_series)
+                opt_series, opt_tw, opt_p = self._optimize_trend(y, col)
+                pvalues_list.append(opt_series)
+                optimal_stl_info.append({"metric": col,
+                                         "optimal p-value": opt_p,
+                                         "optimal smoothing window length": opt_tw
+                                        })
             else:
                 if trend_window is None:
                     raise ValueError("trend_window must be set when optimize = False.")
-                optimal_tw = trend_window
+                opt_tw = trend_window
             
             # Decompose time series
-            trend, resid = self._stl(y, optimal_tw)
+            trend, resid = self._stl(y, opt_tw)
             
             self.trend.loc[x,col] = trend
             self.residuals.loc[x,col] = resid
@@ -387,22 +525,114 @@ class TSAnalyzer(object):
         elapsed = end - start
         print(f"Optimization completed in {elapsed.seconds}s.")
 
-        return pd.DataFrame(optimality_list)
+        self.trend.index.name = "Date"
+        self.residuals.index.name = "Date"
+        
+        self.pvalues_df = pd.DataFrame(pvalues_list)
+        self.optimal_stl_df = pd.DataFrame(optimal_stl_info)
 
-    def test_stationarity(self, alpha: float=0.05, data: pd.DataFrame=None):
+        if self.save:
+            self.trend.to_csv(self.trends_fpath)
+            self.residuals.to_csv(self.residuals_fpath)
+            self.pvalues_df.to_csv(self.p_values_fpath)
+            self.optimal_stl_df.to_csv(self.optimal_stl_info_fpath)
+                    
+        return self.residuals
+
+    def get_decomposition(self, 
+                          trend_window: int|None=None,
+                          optimize: bool=True,
+                          force: bool=False):
         """
+        Either load time series decomposition from disk
+        if the data is available or, if it is not, compute
+        it from scratch.
+        
+        Optionals
+        ---------
+        trend_window : int [default: None]
+            Length of smoothing window for trend inference
+
+        optimize : bool [default: True]
+            Whether or not the trend smoothing window
+            should be optimized.
+            
+        force : bool [default: False]
+            If true, forces recomputation of decomposition
+            even if resulting file is already available
+            on disk.
+        """
+        if not(force) and (self.trends_fpath.exists() and self.residuals_fpath.exists()):
+            print("Loading time series decomposition from disk...")
+            self.trend = pd.read_csv(self.trends_fpath, parse_dates=["Date"]).set_index("Date")
+            self.residuals = pd.read_csv(self.residuals_fpath, parse_dates=["Date"]).set_index("Date")
+            try:
+                self.pvalues_df = pd.read_csv(self.p_values_fpath)
+            except FileNotFoundError:
+                print(f"WARNING: {self.p_values_fpath} was not found.")
+            try:
+                self.pvalues_df = pd.read_csv(self.optimal_stl_info_fpath)
+            except FileNotFoundError:
+                print(f"WARNING: {self.optimal_stl_info_fpath} was not found.")
+        else:
+            print("Computing optimal time series decomposition...")
+            self._decompose(trend_window=trend_window, optimize=optimize)
+
+        print("-> Done!")
+
+    def test_stationarity(self, 
+                          data: pd.DataFrame,
+                          alpha: float=0.05,
+                         ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Tests stationarity for each out of a number of
+        time series. 
+        
+        The pandas.DataFrame 'data' is expected to contain
+        a number of different time series, each one
+        corresponding to a column of the DataFrame. This
+        function checks for each column, whether the
+        corresponding time series is stationary or not by
+        conducting an augmented Dickey-Fuller (ADF) test for 
+        each time series separately.
+        
+        All the stationary time series are collected into
+        a new pandas.DataFrame and so are the non-stationary
+        ones. A 2-tuple with these two new pandas.DataFrames
+        forms the output of this method.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            Pandas.DataFrame containing the different time
+            series in its columns.
+        
+        Optionals
+        ---------
+        alpha : int [default: 0.05]
+            Significance level used to decide whether or not
+            a time series is stationary based on the p-value
+            of the ADF test.
+
+        Returns
+        -------
+        stationary_df : pandas.DataFrame
+            Pandas.DataFrame containing all the metrics
+            whose time series are stationary. For each metric
+            (row) this table lists the ADF test statistic,
+            the corresponding p-value, and the test statistic
+            thereshold for the given signifance level alpha.
+            
+        non_stationary_df : pandas.DataFrame
+            Pandas.DataFrame containing all the metrics
+            whose time series are non-stationary. For each metric
+            (row) this table lists the ADF test statistic,
+            the corresponding p-value, and the test statistic
+            thereshold for the given signifance level alpha.
         """
         non_stationary = []
         stationary = []
         
-        if data is None:
-            if self.residuals:
-                print("Checking stationarity for residuals (data = self.residuals)...")
-                data = self.residuals
-            else:
-                print("Checking stationarity for raw/interpolated data (i.e. not for residuals)...")
-                data = self.data
-            
         for c in data.columns:
             adf_result=adfuller(data.loc[:,c].dropna())
 
@@ -417,35 +647,36 @@ class TSAnalyzer(object):
             is_significant = p<alpha
             
             if is_significant and is_stationary:
-                stationary.append({"metric": c, "test": statistic, "p": p, f"max(test, p={int(alpha*100)}%)": threshold})
+                stationary.append({"metric": c, 
+                                   "test": statistic, 
+                                   "p": p,
+                                   f"max(test, p={int(alpha*100)}%)": threshold
+                                  }
+                                 )
             else:
-                non_stationary.append({"metric": c, "test": statistic, "p": p, f"max(test, p={int(alpha*100)}%)": threshold})
+                non_stationary.append({"metric": c, 
+                                       "test": statistic, 
+                                       "p": p, 
+                                       f"max(test, p={int(alpha*100)}%)": threshold
+                                      }
+                                     )
         
         print(f"# non-stationary time series: {len(non_stationary)}")
         print(f"# stationary time series: {len(stationary)}")
 
-        return (pd.DataFrame(stationary), pd.DataFrame(non_stationary))
+        stationary_df = pd.DataFrame(stationary)
+        non_stationary_df = pd.DataFrame(non_stationary)
 
-    def optimize_trend(self, trend_window_grid, alpha):
-        """
-        Naïvely optimize the trend window length by maximizing
-        the ratio of stationary-to-non-stationary time series.
-        """
-        ratios = []
-        optimal_tw = min(trend_window_grid)
-        optimal_ratio = 0
-        for tw in trend_window_grid:
-            self.detrend(trend_window=tw)
-            stat, non_stat = self.test_stationarity(alpha=alpha, data=self.residuals)
-            ratio = stat/non_stat
-            ratios.append(ratio)
+        if len(stationary_df)>0:
+            stationary_df = stationary_df.set_index("metric")
+        if len(non_stationary_df)>0:
+            non_stationary_df = non_stationary_df.set_index("metric")
 
-            # update optimum
-            if ratio > optimal_ratio:
-                optimal_ratio = ratio
-                optimal_tw = tw
-                
-            self.reset()
+        if self.save:
+            stationary_df.to_csv(self.stationary_ts_fpath)
+            non_stationary_df.to_csv(self.non_stationary_ts_fpath)
+        
+        return stationary_df, non_stationary_df
         
     
 class CorrelationAnalysis(object):
