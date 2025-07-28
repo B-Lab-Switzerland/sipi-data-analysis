@@ -872,7 +872,7 @@ class Stage3(Processor):
         if self.verbosity > 0:
             print("Reading stage-3-processed data from disk...")
             
-        metr_df = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename),
+        metr_df = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename)
         ci_df = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
 
         metr_df.rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
@@ -1277,6 +1277,9 @@ class TransformationPipeline:
         
     self.verbosity : int
         See optional parameter verbosity.
+
+    self.force_stage : int
+        See parameter force_stage
         
     self.force_dict : Dict[int, bool]
         A dictionary containing boolean values indicating
@@ -1295,8 +1298,11 @@ class TransformationPipeline:
 
     Public methods
     --------------
-    run() -> Any
-        Trigger execution of transformation pipeline.    
+    resume() -> pd.DataFrame
+        Trigger resuming of transformation pipeline.
+
+    run() -> pd.DataFrame
+        Trigger execution of transformation pipeline.
     """
     def __init__(self, 
                  raw_data: List[Tuple[str, Dict]],
@@ -1340,6 +1346,7 @@ class TransformationPipeline:
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
 
+        self.force_stage = force_stage
         self.force_dict = {stage_id: False for stage_id in range(1,self.n_stages+1)}
         if force_stage > 0 and force_stage <= self.n_stages:
             for stage_id in range(force_stage, self.n_stages+1):
@@ -1399,12 +1406,40 @@ class TransformationPipeline:
             
         return stage.output
 
-    def run(self):
+    def resume(self) -> pd.DataFrame:
         """
-        Trigger execution of transformation pipeline.
+        Trigger resuming of execution of transformation
+        pipeline.
 
-        This is the one and only function representing
-        the user interface of the TransformationPipeline
-        class.
+        Returns
+        -------
+        self.output : pd.DataFrame
+            The output of the final transformation stage.
         """
         return self._run_stage(len(self.stages)-1)
+
+    def run(self) -> pd.DataFrame:
+        """
+        Computes or reads the results for each data
+        transformation stage.
+
+        Returns
+        -------
+        self.output : pd.DataFrame
+            The output of the final transformation stage.
+        """
+        for index, stage in enumerate(self.stages):
+            print(f"> Stage {index + 1}:")
+            # Set input
+            if index == 0:
+                stage.input = self.raw_data
+            else:
+                stage.input = self.stages[index-1].output
+
+            # Force re-computations
+            force=False
+            if (self.force_stage > 0) & (self.force_stage <= index+1):
+                force=True
+            stage.get_data(force=force)
+
+        return stage.output
