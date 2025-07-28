@@ -1268,8 +1268,11 @@ class TransformationPipeline:
 
     Public methods
     --------------
-    run() -> Any
-        Trigger execution of transformation pipeline.    
+    resume() -> pd.DataFrame
+        Trigger resuming of transformation pipeline.
+
+    run() -> pd.DataFrame
+        Trigger execution of transformation pipeline.
     """
     def __init__(self, 
                  raw_data: List[Tuple[str, Dict]],
@@ -1373,13 +1376,15 @@ class TransformationPipeline:
             
         return stage.output
 
-    def resume(self):
+    def resume(self) -> pd.DataFrame:
         """
-        Trigger execution of transformation pipeline.
+        Trigger resuming of execution of transformation
+        pipeline.
 
-        This is the one and only function representing
-        the user interface of the TransformationPipeline
-        class.
+        Returns
+        -------
+        self.output : pd.DataFrame
+            The output of the final transformation stage.
         """
         return self._run_stage(len(self.stages)-1)
 
