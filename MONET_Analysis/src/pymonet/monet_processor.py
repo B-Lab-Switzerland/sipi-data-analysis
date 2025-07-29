@@ -581,6 +581,7 @@ class Stage2(Processor):
             Dataframe mapping the metric IDs to the metric
             names (including some descriptions).
         """
+        # Map metric IDs to corresponding metric names
         id2name_map = pd.DataFrame([{"metric_id": od["metric_id"], 
                                      "metric_name": f"{od["observable"]} [{od["data"].columns[0]}]", 
                                      "metric_description": od["description"]
@@ -588,6 +589,12 @@ class Stage2(Processor):
                                    ]
                                   )
 
+        # Add capitals information
+        id2name_map["dam_id"] = id2name_map["metric_id"].apply(lambda x: x[:8])
+        id2name_map["dam_id"] = id2name_map["dam_id"].astype(int)
+        id2name_map = id2name_map.merge(self.metatable[["dam_id", "capital - primary"]], on="dam_id")
+        id2name_map = id2name_map.drop(["dam_id"], axis=1)
+        
         return id2name_map.set_index("metric_id")
 
     def _transform(self):
@@ -696,6 +703,7 @@ class Stage2(Processor):
             self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
 
         self.additional_results["metric_id2name_map"] = pd.read_csv(self.current_stage_fpath / const.metric_id2name_fname)
+
         print("-> done!")
 
     def _is_done(self) -> bool:
@@ -1683,28 +1691,41 @@ class TransformationPipeline(object):
         """
         return self._run_stage(len(self.stages)-1)
 
-    def run(self) -> pd.DataFrame:
+    def run(self, stage_id: int|None = None) -> pd.DataFrame:
         """
         Computes or reads the results for each data
         transformation stage.
 
+        Optional
+        --------
+        stage_id : int [default: None]
+            If set, only the stage with id = stage_id
+            (1-based) is run (corresponds to a forced
+            run).
+        
         Returns
         -------
         self.output : pd.DataFrame
             The output of the final transformation stage.
         """
-        for index, stage in enumerate(self.stages):
-            print(f"> Stage {index + 1}:")
-            # Set input
-            if index == 0:
-                stage.input = self.raw_data
-            else:
-                stage.input = self.stages[index-1].output
+        if stage_id:
+            index = stage_id - 1
+            self.force_dict[2]=True
+            print(f"> Stage {stage_id}:")
+            return self._run_stage(index)
+        else:
+            for index, stage in enumerate(self.stages):
+                print(f"> Stage {index + 1}:")
+                # Set input
+                if index == 0:
+                    stage.input = self.raw_data
+                else:
+                    stage.input = self.stages[index-1].output
+    
+                # Force re-computations
+                force=False
+                if (self.force_stage > 0) & (self.force_stage <= index+1):
+                    force=True
+                stage.get_data(force=force)
 
-            # Force re-computations
-            force=False
-            if (self.force_stage > 0) & (self.force_stage <= index+1):
-                force=True
-            stage.get_data(force=force)
-
-        return stage.output
+            return stage.output
