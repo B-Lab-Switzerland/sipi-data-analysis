@@ -1116,7 +1116,13 @@ class DataImputer(Processor):
         """
         Impute the data on a common time grid.
 
-        
+        Originally, all time series are measured on
+        their very own time grid. In order to make
+        them comparable, all these time grids need
+        to be aligned. After running through this
+        transformation step, every time series will
+        have a value for every year between its
+        first and last year of measurement.
         """
         # Perform data imputation using Gaussian Processes
         di = utils.DataImputer(self.input)
@@ -1204,9 +1210,28 @@ class DataImputer(Processor):
         dirpath = self.current_stage_fpath
         dirpath.mkdir(parents=True, exist_ok=True)
         df.to_csv(dirpath / fname)
-        
 
-class TransformationPipeline:
+        
+class TSDecomposer(Processor):
+    """
+    Take a set of time series (stored as columns
+    in a pandas.DataFrame) and decompose it into
+    a trend and residuals.
+    """
+    def _transform(self):
+        pass
+    
+    def _read(self):
+        pass
+
+    def _save(self):
+        pass
+
+    def _is_done(self) -> bool:
+        pass
+
+    
+class TransformationPipeline(object):
     """
     Put all the data transformation steps into a
     streamlined pipeline, which offers a very clean
@@ -1239,7 +1264,6 @@ class TransformationPipeline:
         Contains the metainformation about the each
         metric.
 
-
     Optionals
     ---------
     force_stage : int [default = 0]
@@ -1258,7 +1282,6 @@ class TransformationPipeline:
         Defines how verbose the output is. 0 means only the bare
         minimum of output is print to std out. The higher the
         value, the more output will be written to std out.
-
 
     Attributes
     ----------
