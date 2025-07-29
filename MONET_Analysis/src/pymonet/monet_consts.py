@@ -51,16 +51,26 @@ metric_id2name_fname = "metric_id_to_name_map.csv"
 compact_metrics_filename = "monet2030_metrics.csv" 
 compact_cis_filename = "monet2030_confintervals.csv"
 
-# (Stage 4)
+# (Stage 4 - Data cleaning)
 clean_data_fname = "monet2030_clean.csv"
 
-# (Stage 5)
+# (Stage 5 - Data imputation)
 interp_data_fname = "monet2030_interpolated.csv"
 envlp_data_fname = "monet2030_uncertainty_envelopes.csv"
 interp_tracker_fname = "monet2030_interpolation_tracker.csv"
 
+# (Stage 6 - Time series decomposition)
+p_values_fname = "stl_p_values.csv" 
+optimal_stl_info_fname = "optimal_stl.csv"
+trends_fname = "trends.csv"
+residuals_fname = "residuals.csv"
+
 # Result files
 # ------------
+# (time series analysis / tsa_dir)
+stationary_ts_fpath = tsa_dir / "stationary.csv"
+non_stationary_ts_fpath = tsa_dir / "non_stationary.csv"
+
 # (correlation analysis / corra_dir)
 non_redundant_obs_fpath = corra_dir / "non_redundant_observables.csv"
 pruned_metrics_fpath = corra_dir / "pruned_metrics.xlsx"

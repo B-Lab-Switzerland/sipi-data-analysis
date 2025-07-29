@@ -445,9 +445,9 @@ class TSAnalyzer(object):
 
         return pval_series, tw_opt, p_opt
             
-    def _decompose(self,
-                   trend_window: int|None=None,
-                   optimize: bool=True) -> pd.DataFrame:
+    def decompose(self,
+                  trend_window: int|None=None,
+                  optimize: bool=True) -> pd.DataFrame:
         """
         Decompose time series into trend and residual.
 
@@ -495,7 +495,9 @@ class TSAnalyzer(object):
         pvalues_list = []
         optimal_stl_info = []
         start = dt.now()
-        for col in self.data.columns:
+
+        for colcntr, col in enumerate(self.data.columns):
+            print(f"Optimizing metric {colcntr}/{len(self.data.columns)}", end="\r")
             metric = self.data[col]
             y = metric.dropna()
             x = y.index
@@ -525,8 +527,8 @@ class TSAnalyzer(object):
         elapsed = end - start
         print(f"Optimization completed in {elapsed.seconds}s.")
 
-        self.trend.index.name = "Date"
-        self.residuals.index.name = "Date"
+        self.trend.index.name = "date"
+        self.residuals.index.name = "date"
         
         self.pvalues_df = pd.DataFrame(pvalues_list)
         self.optimal_stl_df = pd.DataFrame(optimal_stl_info)
@@ -538,47 +540,6 @@ class TSAnalyzer(object):
             self.optimal_stl_df.to_csv(self.optimal_stl_info_fpath)
                     
         return self.residuals
-
-    def get_decomposition(self, 
-                          trend_window: int|None=None,
-                          optimize: bool=True,
-                          force: bool=False):
-        """
-        Either load time series decomposition from disk
-        if the data is available or, if it is not, compute
-        it from scratch.
-        
-        Optionals
-        ---------
-        trend_window : int [default: None]
-            Length of smoothing window for trend inference
-
-        optimize : bool [default: True]
-            Whether or not the trend smoothing window
-            should be optimized.
-            
-        force : bool [default: False]
-            If true, forces recomputation of decomposition
-            even if resulting file is already available
-            on disk.
-        """
-        if not(force) and (self.trends_fpath.exists() and self.residuals_fpath.exists()):
-            print("Loading time series decomposition from disk...")
-            self.trend = pd.read_csv(self.trends_fpath, parse_dates=["Date"]).set_index("Date")
-            self.residuals = pd.read_csv(self.residuals_fpath, parse_dates=["Date"]).set_index("Date")
-            try:
-                self.pvalues_df = pd.read_csv(self.p_values_fpath)
-            except FileNotFoundError:
-                print(f"WARNING: {self.p_values_fpath} was not found.")
-            try:
-                self.pvalues_df = pd.read_csv(self.optimal_stl_info_fpath)
-            except FileNotFoundError:
-                print(f"WARNING: {self.optimal_stl_info_fpath} was not found.")
-        else:
-            print("Computing optimal time series decomposition...")
-            self._decompose(trend_window=trend_window, optimize=optimize)
-
-        print("-> Done!")
 
     def test_stationarity(self, 
                           data: pd.DataFrame,

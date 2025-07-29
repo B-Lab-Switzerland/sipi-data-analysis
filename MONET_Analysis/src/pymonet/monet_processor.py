@@ -875,10 +875,10 @@ class Stage3(Processor):
         metr_df = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename)
         ci_df = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
 
-        metr_df.rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        metr_df.set_index("Year", inplace=True)
-        ci_df.rename({"Unnamed: 0": "Year"}, axis=1, inplace=True)
-        ci_df.set_index("Year", inplace=True)
+        metr_df.rename({"Unnamed: 0": "year"}, axis=1, inplace=True)
+        metr_df.set_index("year", inplace=True)
+        ci_df.rename({"Unnamed: 0": "year"}, axis=1, inplace=True)
+        ci_df.set_index("year", inplace=True)
         
         self.output = metr_df
         self.additional_results["confidence_intervals"] = ci_df
@@ -1016,7 +1016,7 @@ class DataCleaning(Processor):
         sparse_cols = cleaner.drop_sparse_columns(n_notnull_min = 10)
 
         # Make data available
-        cleaner.df.index.name = "Year"
+        cleaner.df.index.name = "year"
         self.output = cleaner.df
 
         # Write processed data to csv files
@@ -1029,7 +1029,7 @@ class DataCleaning(Processor):
         if self.verbosity > 0:
             print("Reading clean data from disk...")
 
-        self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("Year")
+        self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("year")
             
         print("-> done!")
 
@@ -1149,9 +1149,9 @@ class DataImputer(Processor):
 
         # Make data available
         self.output = monet_interp
-        self.output.index.name = "Year"
+        self.output.index.name = "year"
         self.additional_results["uncertainty_envelopes"] = monet_envlp
-        self.additional_results["uncertainty_envelopes"].index.name = "Year"
+        self.additional_results["uncertainty_envelopes"].index.name = "year"
         self.additional_results["interp_tracker"] = interp_tracker
 
         # Write processed data to csv files
@@ -1166,8 +1166,8 @@ class DataImputer(Processor):
         if self.verbosity > 0:
             print("Reading imputed data from disk...")
 
-        self.output = pd.read_csv(self.current_stage_fpath / const.interp_data_fname).set_index("Year")
-        self.additional_results["uncertainty_envelopes"] = pd.read_csv(self.current_stage_fpath / const.envlp_data_fname).set_index("Year")
+        self.output = pd.read_csv(self.current_stage_fpath / const.interp_data_fname).set_index("year")
+        self.additional_results["uncertainty_envelopes"] = pd.read_csv(self.current_stage_fpath / const.envlp_data_fname).set_index("year")
             
         print("-> done!")
 
@@ -1218,18 +1218,105 @@ class TSDecomposer(Processor):
     in a pandas.DataFrame) and decompose it into
     a trend and residuals.
     """
+    def _year2date(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert integer years to actual dates
+        according to the rule
+
+        1950 -> 1950-01-01
+        1993 -> 1993-01-01
+        2012 -> 2012-01-01
+
+        Parameter
+        ---------
+        df : pandas.DataFrame
+            A pandas.DataFrame containing one or several
+            time series in its columns and a row index
+            of dtype int.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The same pandas.DataFrame as in the input but
+            now the row index has an actualy datetime dtype.
+        """
+        df.index = utils.fractional_years_to_datetime(df.index)
+        return df
+        
     def _transform(self):
-        pass
+        """
+        Perform time series decomposition.
+        """
+        ts_data = self._year2date(self.input.copy())
+        tsa = utils.TSAnalyzer(ts_data)
+        residuals = tsa.decompose()
+
+        # Make data available
+        self.output = tsa.residuals
+        self.additional_results["trend"] = tsa.trend
+        self.additional_results["optimal_stls"] = tsa.optimal_stl_df.set_index("metric")
+        self.additional_results["pvalues_df"] = tsa.pvalues_df.set_index("metric")
+
+        # Write processed data to csv files
+        self._save(const.residuals_fname, tsa.residuals)
+        self._save(const.trends_fname, tsa.trend)
+        self._save(const.optimal_stl_info_fname, tsa.optimal_stl_df)
+        self._save(const.p_values_fname, tsa.pvalues_df)
+        
     
     def _read(self):
-        pass
+        """
+        Read imputed data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading imputed data from disk...")
 
-    def _save(self):
-        pass
+        self.output = pd.read_csv(self.current_stage_fpath / const.residuals_fname).set_index("date")
+        self.additional_results["trends"] = pd.read_csv(self.current_stage_fpath / const.trends_fname).set_index("date")
+        self.additional_results["p_values"] = pd.read_csv(self.current_stage_fpath / const.p_values_fname).set_index("metric")
+        self.additional_results["optimal_stl"] = pd.read_csv(self.current_stage_fpath / const.optimal_stl_info_fname).set_index("metric")
+            
+        print("-> done!")
 
     def _is_done(self) -> bool:
-        pass
+        """
+        Checks if imputed data is already available on disk
+        or not.
 
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==4)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, df: pd.DataFrame):
+        """
+        Writes resulting data from time series 
+        decomposition to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the MONET2030 time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(dirpath / fname)
     
 class TransformationPipeline(object):
     """
@@ -1336,6 +1423,41 @@ class TransformationPipeline(object):
                  verbosity: int = 0):
         self.raw_data = raw_data
         self.metatable = metatable
+
+        # Next define the list of data transformation
+        # steps:
+
+        # Stage 1: Separation of data and meta information
+        #          --> Converts xlsx files containing both 
+        #              time series data an meta information
+        #              into JSON files that cleanly separate
+        #              the meta information from the data.
+        # Stage 2: Creation of individual metrics
+        #          --> Creates JSON files that one and only one
+        #              time series (i.e. in some cases a JSON
+        #              file resulting from stage 1 is split into
+        #              multiple JSON files here in stage 2 if the
+        #              stage-1 file had a data table with multiple
+        #              columns).
+        # Stage 3: Data consolidation
+        #          --> Takes all the time series in the JSON files
+        #              from stage-2 and consolidate them into 
+        #              pandas.DataFrames. In this step any meta
+        #              information is neglected. All metrics end
+        #              up in one DataFrame, all confidence intervals
+        #              in another.
+        # Stage 4: Data cleaning
+        #          --> Performs a number of data cleaning steps such
+        #              as removal of irrelevant metrics, removal
+        #              of time series that are too sparse, etc.
+        # Stage 5: Data imputation 
+        #          --> converts time series with missing data and
+        #              irregular time grids into time series all
+        #              having values for every year between their
+        #              first and last respective year of measurement.
+        # Stage 6: Time series decomposition 
+        #          --> converts full time series into residuals, which
+        #              can actually be used for data analysis.
         self.stages = [Stage1(input_data=None, 
                               indicator_table = indicator_table,
                               metatable=self.metatable, 
@@ -1355,17 +1477,23 @@ class TransformationPipeline(object):
                               verbosity=verbosity
                              ),
                        DataCleaning(input_data=None, 
-                              indicator_table = indicator_table,
-                              metatable=self.metatable,
-                              stage_id=4,
-                              verbosity=verbosity
-                             ),
+                                    indicator_table = indicator_table,
+                                    metatable=self.metatable,
+                                    stage_id=4,
+                                    verbosity=verbosity
+                                   ),
                        DataImputer(input_data=None, 
-                              indicator_table = indicator_table,
-                              metatable=self.metatable,
-                              stage_id=5,
-                              verbosity=verbosity
-                             ),
+                                   indicator_table = indicator_table,
+                                   metatable=self.metatable,
+                                   stage_id=5,
+                                   verbosity=verbosity
+                                  ),
+                       TSDecomposer(input_data=None,
+                                    indicator_table = indicator_table,
+                                    metatable=self.metatable,
+                                    stage_id=6,
+                                    verbosity=verbosity
+                                   ),
                       ]
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
