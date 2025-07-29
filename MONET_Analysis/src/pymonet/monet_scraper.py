@@ -442,43 +442,167 @@ class DataFileLoader(object):
         else:
             self._scrape_data()
         
+class Scraper(object):
+    """
+    """
+    def __init__(self):
+        self.indicators_metatable = None
+        self.observables_metatable = None
+        self.capitals_map = self._load_capmap()
+
+        # ================================================ #
+        # **Important remark:**                            #
+        # The capitals mapping file (corresponding to      #
+        # const.capmap_path) is a manually created file.   #
+        # If it does no longer contain the same ids as     #
+        # self.indicators_metatable, it has to be recreated #
+        # manually.                                        #
+        # ================================================ #
         
+    def _load_capmap(self) -> pd.DataFrame:
+        """
+        Load capitals mappingt into memory.
+
+        The capitals map maps the different
+        indicators to the corresponding capital
+        (social, human, natural, or economic).
+
+        Returns
+        -------
+        capmap : pandas.DataFrame
+            A dataframe listing the indicators
+            and the corresponding primary and
+            secondary capitals they map to.
+        """
+        capmap = pd.read_csv(const.capmap_path) 
+        return capmap
+        
+    async def _scrape_indicators_metatable(self) -> pd.DataFrame:
+        """
+        List of all MONET2030 indicators
+        
+        First, let's get a list of all indicators
+        and their meta information (e.g. the URLs
+        pointing to the indicator-specific subpages). 
+
+        Returns
+        -------
+        indicators_metatable : pandas.DataFrame
+            A list of all indicators (as pandas.DataFrame)
+            and their meta information (e.g. the URLs
+            pointing to the indicator-specific subpages)
+        """
+        itl = IndicatorTableLoader(const.url_all_monet2030_indicators, 
+                                   const.indicator_table_path
+                                  )
+        await itl.get_table()
+        indicators_metatable = itl.table
+        return indicators_metatable
+
+    async def _scrape_observables_metatable(self) -> pd.DataFrame:
+        """
+        List of all data files for all MONET2030 indicators
+
+        Given a list of all subpages related to the MONET2030
+        indicators (see Step 1), we can now go a step further
+        and scrape each of these subpages. Doing so we can
+        find yet a new set of URLs that point to the actual
+        indicator-specific data files. It is the data in these
+        files we are ultimately interested in.
+
+        Returns
+        -------
+        observables_metatable : pandas.DataFrame
+            A list of all observables (as pandas.DataFrame)
+            and their meta information (e.g. the URLs
+            pointing to the individual data files).
+        """
+        mitl = MetaInfoTableLoader(self.indicators_metatable,
+                                   const.metainfo_table_path
+                                  )
+        await mitl.get_table()
+        observables_metatable = mitl.table
+        return observables_metatable
+
+    def _scrape_datafiles(self) -> List[Tuple[str, Dict]]:
+        """
+        Download all the data files.
+
+        Download the data files listed in
+        the metadata table created in the
+        previous step. The data files are
+        stored in raw as well as processed
+        format.
+
+        Returns
+        -------
+        raw_data : List[Tuple[str, Dict]]
+            Contains the raw MONET2030 data as downloaded
+            from the www. The tuples are of the format
+            (dam_id, excel_spreadsheet), where the excel
+            spreadsheet is a dictionary with (sheet_name,
+            data table) as key-value pairs.
+        """
+        dfl = DataFileLoader(self.observables_metatable,
+                             const.raw_dir,
+                             )
+        dfl.get_data()
+        raw_data = dfl.raw_data_list
+
+        return raw_data
+        
+    async def scrape(self) -> List[Tuple[str, Dict]]:
+        """
+        Scrapes all the web data including meta data
+        about indicators and sub-indicators ("observables")
+        as well as the actual data.
+
+        Returns
+        -------
+        raw_data : List[Tuple[str, Dict]]
+            Contains the raw MONET2030 data as downloaded
+            from the www. The tuples are of the format
+            (dam_id, excel_spreadsheet), where the excel
+            spreadsheet is a dictionary with (sheet_name,
+            data table) as key-value pairs.
+        """
+        # Step 1
+        print("Getting indicator information...")
+        indicator_mt = await self._scrape_indicators_metatable()
+        self.indicators_metatable = indicator_mt.merge(self.capitals_map, on="id", how="outer")
+        
+        # Step 2
+        print("Getting observable information...")
+        observables_mt = await self._scrape_observables_metatable()
+        observables_mt = observables_mt.merge(self.capitals_map, 
+                                      left_on="indicator_id", right_on="id",
+                                      how="outer")
+        observables_mt = observables_mt[["dam_id",
+                                 "indicator_id",
+                                 "sdg",
+                                 "topic",
+                                 "indicator",
+                                 "observable",
+                                 "description",
+                                 "capital - primary",
+                                 "units",
+                                 "data_file_url"
+                                ]]
+        self.observables_metatable = observables_mt
+        
+        # Step 3
+        print("Getting data files..")
+        raw_data = self._scrape_datafiles()
+        
+        # Return
+        return raw_data
+
 def main():
     """
-    Main function scraping or reading the MONET2030
-    indicator data.
+    Main function to execute the web scraper.
     """
-    # -----------------------------------
-    # 1) List of all MONET2030 indicators
-    # -----------------------------------
-    # First, let's get a list of all indicators and their meta information
-    # (e.g. the URLs pointing to the indicator-specific subpages). 
-    itl = IndicatorTableLoader(const.url_all_monet2030_indicators, 
-                               const.indicator_table_path
-                              )
-    itl.get_table()
-    
-    # ------------------------------------------------------
-    # 2) List of all data files for all MONET2030 indicators
-    # ------------------------------------------------------
-    # Given a list of all subpages related to the MONET2030 indicators (see Step 1),
-    # we can now go a step further and scrape each of these subpages. Doing so we can
-    # find yet a new set of URLs that point to the actual indicator-specific data 
-    # files. It is the data in these files we are ultimately interested in.
-    mitl = MetaInfoTableLoader(itl.table,
-                               const.metainfo_table_path
-                               )
-    mitl.get_table()
-        
-    # ------------------------------
-    # 3) Download all the data files
-    # ------------------------------
-    # Download the data files listed in the metadata table created in the previous
-    # step. The data files are stored in raw as well as processed format.
-    dfl = DataFileLoader(mitl.table,
-                         const.raw_data_path,
-                         )
-    dfl.get_data()
+    s = Scraper()
+    s.scrape()
 
 if __name__ == "__main__":
-    main()
+    scrape_data()
