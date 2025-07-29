@@ -1377,7 +1377,7 @@ class DataScaler(Processor):
             print("Reading imputed data from disk...")
 
         self.output = pd.read_csv(self.current_stage_fpath / const.scaled_resids_fname).set_index("date")
-        self.additional_results["scaled_time_series"] = pd.read_csv(self.current_stage_fpath / const.scaled_ts_fname).set_index("date")
+        #self.additional_results["scaled_time_series"] = pd.read_csv(self.current_stage_fpath / const.scaled_ts_fname).set_index("date")
 
         print("-> done!")
 
