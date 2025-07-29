@@ -694,7 +694,8 @@ class Stage2(Processor):
                 loaded_dict = json.load(f)
 
             self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
-            
+
+        self.additional_results["metric_id2name_map"] = pd.read_csv(self.current_stage_fpath / const.metric_id2name_fname)
         print("-> done!")
 
     def _is_done(self) -> bool:
