@@ -531,6 +531,7 @@ class TSAnalyzer(object):
         self.residuals.index.name = "date"
         
         self.pvalues_df = pd.DataFrame(pvalues_list)
+        self.pvalues_df.index.name = "metric"
         self.optimal_stl_df = pd.DataFrame(optimal_stl_info)
 
         if self.save:

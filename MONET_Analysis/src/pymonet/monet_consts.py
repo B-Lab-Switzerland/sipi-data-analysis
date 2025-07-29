@@ -62,8 +62,12 @@ interp_tracker_fname = "monet2030_interpolation_tracker.csv"
 # (Stage 6 - Time series decomposition)
 p_values_fname = "stl_p_values.csv" 
 optimal_stl_info_fname = "optimal_stl.csv"
-trends_fname = "trends.csv"
-residuals_fname = "residuals.csv"
+trends_fname = "monet2030_trends.csv"
+residuals_fname = "monet2030_residuals.csv"
+
+# (Stage 7 - Scaling)
+scaled_ts_fname = "monet2030_scaled_ts.csv"
+scaled_resids_fname = "monet2030_scaled_residuals.csv"
 
 # Result files
 # ------------

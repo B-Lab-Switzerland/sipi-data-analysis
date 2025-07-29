@@ -11,6 +11,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
+from sklearn.preprocessing import StandardScaler
+
 # Local imports
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
@@ -1255,14 +1257,15 @@ class TSDecomposer(Processor):
         self.output = tsa.residuals
         self.additional_results["trend"] = tsa.trend
         self.additional_results["optimal_stls"] = tsa.optimal_stl_df.set_index("metric")
-        self.additional_results["pvalues_df"] = tsa.pvalues_df.set_index("metric")
+        self.additional_results["pvalues_df"] = tsa.pvalues_df
 
         # Write processed data to csv files
         self._save(const.residuals_fname, tsa.residuals)
         self._save(const.trends_fname, tsa.trend)
         self._save(const.optimal_stl_info_fname, tsa.optimal_stl_df)
         self._save(const.p_values_fname, tsa.pvalues_df)
-        
+
+        print("-> done!")
     
     def _read(self):
         """
@@ -1275,7 +1278,7 @@ class TSDecomposer(Processor):
         self.additional_results["trends"] = pd.read_csv(self.current_stage_fpath / const.trends_fname).set_index("date")
         self.additional_results["p_values"] = pd.read_csv(self.current_stage_fpath / const.p_values_fname).set_index("metric")
         self.additional_results["optimal_stl"] = pd.read_csv(self.current_stage_fpath / const.optimal_stl_info_fname).set_index("metric")
-            
+        
         print("-> done!")
 
     def _is_done(self) -> bool:
@@ -1317,6 +1320,107 @@ class TSDecomposer(Processor):
         dirpath = self.current_stage_fpath
         dirpath.mkdir(parents=True, exist_ok=True)
         df.to_csv(dirpath / fname)
+
+class DataScaler(Processor):
+    """
+    Standardize time series data (standardization = subtract
+    mean value and scale to unit standard deviation). The
+    resulting values are thus z-scores (normally distributed).
+    """
+    def _std_scale(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Standardized the input data.
+
+        Input data is converted into z-scores.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            Input data
+
+        Returns
+        -------
+        z_scores : pandas.DataFrame
+            Standardized data
+        """
+        # Initialize and run scaler
+        z_scaler = StandardScaler()
+        z_scores = z_scaler.fit_transform(data)
+
+        # Turn output into pandas.DataFrame
+        z_scores_df = pd.DataFrame(z_scores, index=data.index, columns=data.columns)
+        
+        return z_scores_df
+        
+    def _transform(self):
+        """
+        Perform data scaling.
+        """
+        normalized_residuals = self._std_scale(self.input)
+        
+
+        # Make data available
+        self.output = normalized_residuals
+        # self.additional_results["normalized_ts"] = normalized_timeseries
+        
+        # Write processed data to csv files
+        self._save(const.scaled_resids_fname, normalized_residuals)
+        #self._save(const.scaled_ts_fname, normalized_timeseries)
+
+        print("-> done!")
+    
+    def _read(self):
+        """
+        Read imputed data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading imputed data from disk...")
+
+        self.output = pd.read_csv(self.current_stage_fpath / const.scaled_resids_fname).set_index("date")
+        self.additional_results["scaled_time_series"] = pd.read_csv(self.current_stage_fpath / const.scaled_ts_fname).set_index("date")
+
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        Checks if scaled data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])>=1)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, df: pd.DataFrame):
+        """
+        Writes resulting data from time series 
+        decomposition to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the MONET2030 time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(dirpath / fname)
+    
     
 class TransformationPipeline(object):
     """
@@ -1458,6 +1562,8 @@ class TransformationPipeline(object):
         # Stage 6: Time series decomposition 
         #          --> converts full time series into residuals, which
         #              can actually be used for data analysis.
+        # Stage 7: Scaling
+        #          --> normlize time series data
         self.stages = [Stage1(input_data=None, 
                               indicator_table = indicator_table,
                               metatable=self.metatable, 
@@ -1494,6 +1600,12 @@ class TransformationPipeline(object):
                                     stage_id=6,
                                     verbosity=verbosity
                                    ),
+                       DataScaler(input_data=None,
+                                  indicator_table = indicator_table,
+                                  metatable=self.metatable,
+                                  stage_id=7,
+                                  verbosity=verbosity
+                                 ),
                       ]
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
