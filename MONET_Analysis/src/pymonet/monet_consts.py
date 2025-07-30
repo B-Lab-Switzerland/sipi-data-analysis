@@ -53,6 +53,7 @@ compact_cis_filename = "monet2030_confintervals.csv"
 
 # (Stage 4 - Data cleaning)
 clean_data_fname = "monet2030_clean.csv"
+irrelevant_metrics_fname = "agenda2030_irrelevant.csv"
 duplicated_rows_fname = "duplicated_rows_removed.csv"
 constant_cols_fname = "constant_metrics.csv"
 outside_years_fname = "outside_year_range.csv"
