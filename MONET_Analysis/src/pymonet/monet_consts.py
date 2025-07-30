@@ -53,7 +53,11 @@ compact_cis_filename = "monet2030_confintervals.csv"
 
 # (Stage 4 - Data cleaning)
 clean_data_fname = "monet2030_clean.csv"
-
+duplicated_rows_fname = "duplicated_rows_removed.csv"
+constant_cols_fname = "constant_metrics.csv"
+outside_years_fname = "outside_year_range.csv"
+sparse_cols_fname = "sparse_metrics.csv"
+                   
 # (Stage 5 - Data imputation)
 interp_data_fname = "monet2030_interpolated.csv"
 envlp_data_fname = "monet2030_uncertainty_envelopes.csv"

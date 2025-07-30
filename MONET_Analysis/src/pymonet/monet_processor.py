@@ -159,6 +159,14 @@ class Stage1(Processor):
     Therefore, the json strings not only contain the actual
     indicator data but metadata as well.
 
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "stage1"
+
+    c_description : str
+        ultra-short class description = "raw to observable-level json"
+
     Private Methods
     ---------------
     _return_worksheets(raw_spreadsheet: Dict[str, pandas.DataFrame]) -> List[str]
@@ -180,6 +188,9 @@ class Stage1(Processor):
     get_data(force: bool) -> None
         Is defined in parent ABC "Processor"
     """
+    c_name = "stage1"
+    c_description = "raw to observable-level json"
+    
     def _return_worksheets(self, raw_spreadsheet: Dict[str, pd.DataFrame]) -> List[str]:
         """
         Returns a list of work sheets in the spreadsheet
@@ -513,7 +524,15 @@ class Stage2(Processor):
 
     Therefore, the stage-2 JSON strings not only contain the actual
     metric data but metadata as well.
+    
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "stage2"
 
+    c_description : str
+        ultra-short class description = "observable-level json to metric-level json"
+        
     Private Methods
     ---------------
     _create_metric_dfs(obs_df: pandas.DataFrame) -> List[pandas.DataFrame]
@@ -527,6 +546,9 @@ class Stage2(Processor):
     get_data(force: bool) -> None
         Is defined in parent ABC "Processor"
     """
+    c_name = "stage2"
+    c_description = "observable-level json to metric-level json"
+    
     def _create_metric_dfs(self, obs_df: pd.DataFrame) -> List[pd.DataFrame]:
         """
         From a MONET2030 observable dataframe that 
@@ -762,7 +784,15 @@ class Stage3(Processor):
     interval was measured.
 
     These dataframes do not contain any meta-data.
+    
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "stage3"
 
+    c_description : str
+        ultra-short class description = "compactify metric-level json to pandas.DataFrame"
+        
     Private Methods
     ---------------
     _standardize_colnames(df: pandas.DataFrame, metric_id: str|List[str]) -> pandas.DataFrame
@@ -776,6 +806,9 @@ class Stage3(Processor):
     --------------
     compactify() -> Tuple[pandas.DataFrame, pandas.DataFrame]
     """
+    c_name = "stage3"
+    c_description = "compactify metric-level json to pandas.DataFrame"
+    
     def _standardize_colnames(self, df: pd.DataFrame, metric_id: str|List[str]) -> pd.DataFrame:
         """
         Standardizes column names by mapping the current column
@@ -944,7 +977,15 @@ class DataCleaning(Processor):
     Run through a set of different data cleaning
     steps as explained in more detail in the
     docstring of the _transform method.
+    
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Data cleaner"
 
+    c_description : str
+        ultra-short class description = "Perform generic and dataset-specific cleaning steps"
+        
     Private methods
     ---------------
     _find_relevant_metrics(metrics_df: pandas.DataFrame) -> pandas.DataFrame
@@ -953,6 +994,9 @@ class DataCleaning(Processor):
     _save() -> None
     _is_done() -> bool
     """
+    c_name = "Data cleaner"
+    c_description = "Perform generic and dataset-specific cleaning steps"
+    
     def _find_relevant_metrics(self, metrics_df: pd.DataFrame) -> pd.DataFrame:
         """
         Filter for metrics that are relevant for agenda2030.
@@ -997,7 +1041,13 @@ class DataCleaning(Processor):
         # Drop all those irrelevant metrics, resulting in a dataframe
         # that only contains the relevant ones.¨
         relevant_metrics_df = metrics_df.drop(irrelevant_metrics, axis=1).copy()
-        return relevant_metrics_df
+
+        # For the sake of completeness, also create a dataframe containing
+        # the irrelevant metrics. This dataframe can be kept for book
+        # keeping and analysis purposes.
+        irrelevant_metrics_df = metrics_df[irrelevant_metrics]
+        
+        return relevant_metrics_df, irrelevant_metrics_df
         
     def _transform(self):
         """
@@ -1017,21 +1067,36 @@ class DataCleaning(Processor):
           number of data points (sparse columns)
         """
         # Perform dataset-specific cleaning
-        relevant_metrics_df = self._find_relevant_metrics(self.input)
+        relevant_metrics_df, irrelevant_metrics_df = self._find_relevant_metrics(self.input)
+        self.additional_results["irrelevant_metrics"] = irrelevant_metrics_df
 
         # Perform generic cleaning steps
+        year_min = 1900
+        year_max = 2025
+        min_data_points = 10
         cleaner = utils.DataCleaner(relevant_metrics_df, verbose=self.verbosity)
         duplicated_rows = cleaner.drop_duplicates()
         constant_cols = cleaner.remove_constant_columns()
-        outside_years = cleaner.apply_time_filter(max_year = 2025)
-        sparse_cols = cleaner.drop_sparse_columns(n_notnull_min = 10)
+        outside_years = cleaner.apply_time_filter(min_year = year_min, max_year = year_max)
+        sparse_cols = cleaner.drop_sparse_columns(n_notnull_min = min_data_points)
 
         # Make data available
         cleaner.df.index.name = "year"
         self.output = cleaner.df
+        self.additional_results["duplicated_rows"] = duplicated_rows
+        self.additional_results["constant_cols"] = pd.Series(constant_cols, name="constant columns")
+        self.additional_results["outside_years"] = pd.Series(outside_years, name=f"years outside [{year_min}, {year_max}]")
+        self.additional_results["sparse_cols"] = pd.Series(sparse_cols, name=f"sparse columns (<{min_data_points} data points)")
 
         # Write processed data to csv files
         self._save(const.clean_data_fname, cleaner.df)
+        self._save(const.duplicated_rows_fname, self.additional_results["duplicated_rows"])
+        self._save(const.constant_cols_fname, self.additional_results["constant_cols"])
+        self._save(const.sparse_cols_fname, self.additional_results["sparse_cols"])
+        
+        [root, extension] = const.outside_years_fname.split(".")
+        self._save(f"{root}_{year_min}to{year_max}.{extension}", self.additional_results["outside_years"])
+        
         
     def _read(self):
         """
@@ -1099,6 +1164,14 @@ class DataImputer(Processor):
     time series. GPs are a good choice because they come
     with uncertainty information.
 
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Data imputer"
+
+    c_description : str
+        ultra-short class description = "Impute data (only interpolation, no extrapolation)"
+
     Private methods
     ---------------
     _transform() -> None
@@ -1106,6 +1179,9 @@ class DataImputer(Processor):
     _save() -> None
     _is_done() -> bool
     """    
+    c_name = "Data imputer"
+    c_description = "Impute data (only interpolation, no extrapolation)"
+    
     def _determine_imputed(self, row: pd.Series) -> bool:
         # Step 1: If the value in interp_tracker is null, it can't be interpolated
         if pd.isnull(row["value"]):
@@ -1228,7 +1304,26 @@ class TSDecomposer(Processor):
     Take a set of time series (stored as columns
     in a pandas.DataFrame) and decompose it into
     a trend and residuals.
+
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Time Series Decomposer"
+
+    c_description : str
+        ultra-short class description = "Decompose time 
+        series into trend and residuals (no seasonality)"
+
+    Private methods
+    ---------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
     """
+    c_name = "Time Series Decomposer"
+    c_description = "Decompose time series into trend and residuals (no seasonality)"
+    
     def _year2date(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Convert integer years to actual dates
@@ -1335,7 +1430,25 @@ class DataScaler(Processor):
     Standardize time series data (standardization = subtract
     mean value and scale to unit standard deviation). The
     resulting values are thus z-scores (normally distributed).
+
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Data scaler"
+
+    c_description : str
+        ultra-short class description = "Standard scaling data"
+
+    Private methods
+    ---------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
     """
+    c_name = "Data scaler"
+    c_description = "Standard scaling data"
+    
     def _std_scale(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Standardized the input data.
@@ -1660,10 +1773,10 @@ class TransformationPipeline(object):
         force_stage = self.force_dict[index+1]
         
         if stage_is_done and not(force_stage):
-            print(f"> Stage {index + 1} is done. Reading from disk.")
+            print(f"> Stage {index + 1} ({stage.c_name}) is done. Reading from disk.")
         else:
             if not(stage_is_done):
-                print(f"> Stage {index + 1} not done. ", end="")
+                print(f"> Stage {index + 1} ({stage.c_name}) not done. ", end="")
             if force_stage:
                 print(f"> Forcing recomputation of stage {index + 1}. ", end="")
             if index == 0:
@@ -1710,7 +1823,7 @@ class TransformationPipeline(object):
         """
         if stage_id:
             index = stage_id - 1
-            self.force_dict[2]=True
+            self.force_dict[stage_id]=True
             print(f"> Stage {stage_id}:")
             return self._run_stage(index)
         else:
