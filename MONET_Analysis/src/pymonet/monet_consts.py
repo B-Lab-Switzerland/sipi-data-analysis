@@ -23,6 +23,7 @@ results_dir = Path("../results")
 tsa_dir = results_dir / "time_series_analysis"
 corra_dir = results_dir / "correlation_analysis"
 perfa_dir = results_dir / "performance_analysis"
+data_availability_dir = results_dir / "data_availability_analysis"
 
 # Meta files
 # ----------
@@ -53,6 +54,7 @@ compact_cis_filename = "monet2030_confintervals.csv"
 
 # (Stage 4 - Data cleaning)
 clean_data_fname = "monet2030_clean.csv"
+irrelevant_metrics_fname = "agend2030_irrelevant.csv"
 duplicated_rows_fname = "duplicated_rows_removed.csv"
 constant_cols_fname = "constant_metrics.csv"
 outside_years_fname = "outside_year_range.csv"
@@ -75,6 +77,13 @@ scaled_resids_fname = "monet2030_scaled_residuals.csv"
 
 # Result files
 # ------------
+# (data availability analysis / data_availability_dir)
+n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
+n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
+data_availability_barchart_fpath = data_availability_dir / "data_availability_barchart.png"
+sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.csv"
+irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.csv"
+
 # (time series analysis / tsa_dir)
 stationary_ts_fpath = tsa_dir / "stationary.csv"
 non_stationary_ts_fpath = tsa_dir / "non_stationary.csv"
