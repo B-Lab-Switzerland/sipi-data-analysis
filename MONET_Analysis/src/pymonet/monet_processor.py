@@ -1106,7 +1106,14 @@ class DataCleaning(Processor):
             print("Reading clean data from disk...")
 
         self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("year")
-            
+        self.additional_results["duplicated_rows"] = pd.read_csv(self.current_stage_fpath / const.duplicated_rows_fname)
+        self.additional_results["constant_cols"] = pd.read_csv(self.current_stage_fpath / const.constant_cols_fname)
+        self.additional_results["sparse_cols"] = pd.read_csv(self.current_stage_fpath / const.sparse_cols_fname)
+        
+        [root, extension] = const.outside_years_fname.split(".")
+        outside_years_fname = [f for f in self.current_stage_fpath.glob('**') if root in f.as_posix()][0]
+        self.additional_results["outside_years"] = pd.read_csv(outside_years_fname)
+
         print("-> done!")
 
     def _is_done(self) -> bool:
@@ -1124,7 +1131,7 @@ class DataCleaning(Processor):
 
         if self.verbosity > 0:
             print(f"paths_exist: {paths_exist}")
-        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==1)
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])>=1)
 
         if self.verbosity > 0:
             print(f"dirs_not_empty: {dirs_not_empty}")
