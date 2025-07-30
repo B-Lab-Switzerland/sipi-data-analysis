@@ -610,13 +610,22 @@ class Stage2(Processor):
                                     } for od in json_dict
                                    ]
                                   )
+        metric_ids = set([mid for mid in id2name_map["metric_id"]])
 
         # Add capitals information
         id2name_map["dam_id"] = id2name_map["metric_id"].apply(lambda x: x[:8])
         id2name_map["dam_id"] = id2name_map["dam_id"].astype(int)
         id2name_map = id2name_map.merge(self.metatable[["dam_id", "capital - primary"]], on="dam_id")
         id2name_map = id2name_map.drop(["dam_id"], axis=1)
-        
+
+        if set([mid for mid in id2name_map["metric_id"]])!=metric_ids:
+            raise ValueError(f"A metric ID was removed from id2name_map. It is missing the following IDs: {metric_ids-set([mid for mid in id2name_map["metric_id"]])}.")
+        if not(id2name_map["capital - primary"].isna().any()):
+            raise ValueError("There are still NULL capiitals in the id2name_map.")
+
+        # remove duplicate 
+        id2name_map = id2name_map.drop_duplicates(subset=["metric_id"], keep="last")
+        id2name_map.drop_duplicates(inplace=True)
         return id2name_map.set_index("metric_id")
 
     def _transform(self):
