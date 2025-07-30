@@ -898,7 +898,9 @@ class Stage3(Processor):
         specific metric and each row to a year.
         """
         compact_metrics, compact_cis = self.compactify()
-        
+        compact_metrics.columns = [c.zfill(14) for c in compact_metrics.columns]
+        compact_cis.columns = [c.zfill(14) for c in compact_cis.columns]
+
         # Make data available
         self.output = compact_metrics
         self.additional_results["confidence_intervals"] = compact_cis
@@ -1090,6 +1092,7 @@ class DataCleaning(Processor):
 
         # Write processed data to csv files
         self._save(const.clean_data_fname, cleaner.df)
+        self._save(const.irrelevant_metrics_fname, self.additional_results["irrelevant_metrics"])
         self._save(const.duplicated_rows_fname, self.additional_results["duplicated_rows"])
         self._save(const.constant_cols_fname, self.additional_results["constant_cols"])
         self._save(const.sparse_cols_fname, self.additional_results["sparse_cols"])
@@ -1106,6 +1109,7 @@ class DataCleaning(Processor):
             print("Reading clean data from disk...")
 
         self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("year")
+        self.additional_results["irrelevant_metrics"] = pd.read_csv(self.current_stage_fpath / const.irrelevant_metrics_fname).set_index("year")
         self.additional_results["duplicated_rows"] = pd.read_csv(self.current_stage_fpath / const.duplicated_rows_fname)
         self.additional_results["constant_cols"] = pd.read_csv(self.current_stage_fpath / const.constant_cols_fname)
         self.additional_results["sparse_cols"] = pd.read_csv(self.current_stage_fpath / const.sparse_cols_fname)
