@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
 from pymonet import monet_logger as logger
-from sipi_da_utils import utils
+from sipi_da_utils import clean, impute, tsa
 
 class Processor(ABC):
     """
@@ -981,7 +981,7 @@ class Stage3(Processor):
         df.to_csv(dirpath / fname)
 
 
-class DataCleaning(Processor):
+class MonetDataCleaning(Processor):
     """
     Data cleaning functionality.
 
@@ -1085,7 +1085,7 @@ class DataCleaning(Processor):
         year_min = 1900
         year_max = 2025
         min_data_points = 10
-        cleaner = utils.DataCleaner(relevant_metrics_df, verbose=self.verbosity)
+        cleaner = clean.DataCleaner(relevant_metrics_df, verbose=self.verbosity)
         duplicated_rows = cleaner.drop_duplicates()
         constant_cols = cleaner.remove_constant_columns()
         outside_years = cleaner.apply_time_filter(min_year = year_min, max_year = year_max)
@@ -1170,7 +1170,7 @@ class DataCleaning(Processor):
         df.to_csv(dirpath / fname) 
 
 
-class DataImputer(Processor):
+class MonetDataImputer(Processor):
     """
     Data imputation functionality.
 
@@ -1232,7 +1232,7 @@ class DataImputer(Processor):
         first and last year of measurement.
         """
         # Perform data imputation using Gaussian Processes
-        di = utils.DataImputer(self.input)
+        di = impute.DataImputer(self.input)
         di.fit_gp()
 
         # Read out interpolation results
@@ -1319,7 +1319,7 @@ class DataImputer(Processor):
         df.to_csv(dirpath / fname)
 
         
-class TSDecomposer(Processor):
+class MonetTSDecomposer(Processor):
     """
     Take a set of time series (stored as columns
     in a pandas.DataFrame) and decompose it into
@@ -1366,7 +1366,7 @@ class TSDecomposer(Processor):
             The same pandas.DataFrame as in the input but
             now the row index has an actualy datetime dtype.
         """
-        df.index = utils.fractional_years_to_datetime(df.index)
+        df.index = tsa.fractional_years_to_datetime(df.index)
         return df
         
     def _transform(self):
@@ -1374,20 +1374,20 @@ class TSDecomposer(Processor):
         Perform time series decomposition.
         """
         ts_data = self._year2date(self.input.copy())
-        tsa = utils.TSAnalyzer(ts_data)
-        residuals = tsa.decompose()
+        ts_analyzer = tsa.TSAnalyzer(ts_data)
+        residuals = ts_analyzer.decompose()
 
         # Make data available
-        self.output = tsa.residuals
-        self.additional_results["trend"] = tsa.trend
-        self.additional_results["optimal_stls"] = tsa.optimal_stl_df.set_index("metric")
-        self.additional_results["pvalues_df"] = tsa.pvalues_df
+        self.output = ts_analyzer.residuals
+        self.additional_results["trend"] = ts_analyzer.trend
+        self.additional_results["optimal_stls"] = ts_analyzer.optimal_stl_df.set_index("metric")
+        self.additional_results["pvalues_df"] = ts_analyzer.pvalues_df
 
         # Write processed data to csv files
-        self._save(const.residuals_fname, tsa.residuals)
-        self._save(const.trends_fname, tsa.trend)
-        self._save(const.optimal_stl_info_fname, tsa.optimal_stl_df)
-        self._save(const.p_values_fname, tsa.pvalues_df)
+        self._save(const.residuals_fname, ts_analyzer.residuals)
+        self._save(const.trends_fname, ts_analyzer.trend)
+        self._save(const.optimal_stl_info_fname, ts_analyzer.optimal_stl_df)
+        self._save(const.p_values_fname, ts_analyzer.pvalues_df)
 
         print("-> done!")
     
@@ -1445,7 +1445,7 @@ class TSDecomposer(Processor):
         dirpath.mkdir(parents=True, exist_ok=True)
         df.to_csv(dirpath / fname)
 
-class DataScaler(Processor):
+class MonetDataScaler(Processor):
     """
     Standardize time series data (standardization = subtract
     mean value and scale to unit standard deviation). The
@@ -1724,30 +1724,30 @@ class TransformationPipeline(object):
                               stage_id=3,
                               verbosity=verbosity
                              ),
-                       DataCleaning(input_data=None, 
-                                    indicator_table = indicator_table,
-                                    metatable=self.metatable,
-                                    stage_id=4,
-                                    verbosity=verbosity
-                                   ),
-                       DataImputer(input_data=None, 
-                                   indicator_table = indicator_table,
-                                   metatable=self.metatable,
-                                   stage_id=5,
-                                   verbosity=verbosity
-                                  ),
-                       TSDecomposer(input_data=None,
-                                    indicator_table = indicator_table,
-                                    metatable=self.metatable,
-                                    stage_id=6,
-                                    verbosity=verbosity
-                                   ),
-                       DataScaler(input_data=None,
-                                  indicator_table = indicator_table,
-                                  metatable=self.metatable,
-                                  stage_id=7,
-                                  verbosity=verbosity
-                                 ),
+                       MonetDataCleaning(input_data=None, 
+                                         indicator_table = indicator_table,
+                                         metatable=self.metatable,
+                                         stage_id=4,
+                                         verbosity=verbosity
+                                        ),
+                       MonetDataImputer(input_data=None, 
+                                        indicator_table = indicator_table,
+                                        metatable=self.metatable,
+                                        stage_id=5,
+                                        verbosity=verbosity
+                                       ),
+                       MonetTSDecomposer(input_data=None,
+                                         indicator_table = indicator_table,
+                                         metatable=self.metatable,
+                                         stage_id=6,
+                                         verbosity=verbosity
+                                        ),
+                       MonetDataScaler(input_data=None,
+                                       indicator_table = indicator_table,
+                                       metatable=self.metatable,
+                                       stage_id=7,
+                                       verbosity=verbosity
+                                      ),
                       ]
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
