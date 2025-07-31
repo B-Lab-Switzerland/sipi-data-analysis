@@ -7,7 +7,9 @@ from datetime import datetime as dt
 # 3rd party imports
 import pandas as pd
 import numpy as np
-    
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 class CorrelationAnalysis(object):
     """
     """
