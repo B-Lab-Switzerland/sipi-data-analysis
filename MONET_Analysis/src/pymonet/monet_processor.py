@@ -292,11 +292,11 @@ class Stage1(Processor):
         # Now let's put in the column names we extracted
         # above.
         col_rename_dict = dict()
-        col_rename_dict[df.columns[0]] = "Year"
+        col_rename_dict[df.columns[0]] = "year"
         for i in range(1, len(col_names)+1):
             col_rename_dict[df.columns[i]] = col_names[i-1]
         df = df.rename(col_rename_dict, axis=1)
-        df = df.set_index("Year")
+        df = df.set_index("year")
 
         # Figure out where the actual data
         # ends and where the footer starts
@@ -853,6 +853,7 @@ class Stage3(Processor):
             df.index = [int(idx.split("/")[0].strip()) for idx in df.index]
         
         df.index = df.index.astype(int)
+        df.index.name = "year"
 
         return df
         
@@ -907,8 +908,11 @@ class Stage3(Processor):
         specific metric and each row to a year.
         """
         compact_metrics, compact_cis = self.compactify()
+        compact_metrics.index.name = "year"
+        compact_cis.index.name = "year"
         
         # Make data available
+        
         self.output = compact_metrics
         self.additional_results["confidence_intervals"] = compact_cis
 
@@ -928,9 +932,7 @@ class Stage3(Processor):
         metr_df = pd.read_csv(self.current_stage_fpath / const.compact_metrics_filename)
         ci_df = pd.read_csv(self.current_stage_fpath / const.compact_cis_filename)
 
-        metr_df.rename({"Unnamed: 0": "year"}, axis=1, inplace=True)
         metr_df.set_index("year", inplace=True)
-        ci_df.rename({"Unnamed: 0": "year"}, axis=1, inplace=True)
         ci_df.set_index("year", inplace=True)
         
         self.output = metr_df
@@ -1075,6 +1077,8 @@ class DataCleaning(Processor):
         - removal of columns that do not contain a minimum
           number of data points (sparse columns)
         """
+        assert self.input.index.name == "year"
+        
         # Perform dataset-specific cleaning
         relevant_metrics_df, irrelevant_metrics_df = self._find_relevant_metrics(self.input)
         self.additional_results["irrelevant_metrics"] = irrelevant_metrics_df
@@ -1099,7 +1103,6 @@ class DataCleaning(Processor):
 
         # Write processed data to csv files
         self._save(const.clean_data_fname, cleaner.df)
-        
         self._save(const.irrelevant_metrics_fname, self.additional_results["irrelevant_metrics"]) 
         self._save(const.duplicated_rows_fname, self.additional_results["duplicated_rows"])
         self._save(const.constant_cols_fname, self.additional_results["constant_cols"])
@@ -1117,8 +1120,8 @@ class DataCleaning(Processor):
             print("Reading clean data from disk...")
 
         self.output = pd.read_csv(self.current_stage_fpath / const.clean_data_fname).set_index("year")
-        self.additional_results["irrelevant_metrics"] = pd.read_csv(self.current_stage_fpath / const.irrelevant_metrics_fname)
-        self.additional_results["duplicated_rows"] = pd.read_csv(self.current_stage_fpath / const.duplicated_rows_fname)
+        self.additional_results["irrelevant_metrics"] = pd.read_csv(self.current_stage_fpath / const.irrelevant_metrics_fname).set_index("year")
+        self.additional_results["duplicated_rows"] = pd.read_csv(self.current_stage_fpath / const.duplicated_rows_fname).set_index("year")
         self.additional_results["constant_cols"] = pd.read_csv(self.current_stage_fpath / const.constant_cols_fname)
         self.additional_results["sparse_cols"] = pd.read_csv(self.current_stage_fpath / const.sparse_cols_fname)
         
@@ -1230,6 +1233,8 @@ class DataImputer(Processor):
         have a value for every year between its
         first and last year of measurement.
         """
+        assert self.input.index.name == "year"
+        
         # Perform data imputation using Gaussian Processes
         di = utils.DataImputer(self.input)
         di.fit_gp()
@@ -1254,8 +1259,8 @@ class DataImputer(Processor):
         interp_tracker["imputed"] = interp_tracker.apply(self._determine_imputed, axis=1)
 
         # Make data available
+        monet_interp.index.name = "year"
         self.output = monet_interp
-        self.output.index.name = "year"
         self.additional_results["uncertainty_envelopes"] = monet_envlp
         self.additional_results["uncertainty_envelopes"].index.name = "year"
         self.additional_results["interp_tracker"] = interp_tracker
@@ -1372,12 +1377,15 @@ class TSDecomposer(Processor):
         """
         Perform time series decomposition.
         """
+        assert self.input.index.name == "year"
+        
         ts_data = self._year2date(self.input.copy())
         tsa = utils.TSAnalyzer(ts_data)
         residuals = tsa.decompose()
+        residuals.index.name = "date"
 
         # Make data available
-        self.output = tsa.residuals
+        self.output = residuals
         self.additional_results["trend"] = tsa.trend
         self.additional_results["optimal_stls"] = tsa.optimal_stl_df.set_index("metric")
         self.additional_results["pvalues_df"] = tsa.pvalues_df
@@ -1497,6 +1505,8 @@ class DataScaler(Processor):
         """
         Perform data scaling.
         """
+        assert self.input.index.name == "date"
+        
         normalized_residuals = self._std_scale(self.input)
         
 
