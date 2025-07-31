@@ -1,0 +1,57 @@
+metric_id,metric_name,capital - primary,count
+28325222a_metr,Number of researchers [Data],Economic,9
+33188532b_metr,Life satisfaction [Very high degree of satisfaction],Human,9
+33188532a_metr,Life satisfaction [High degree of satisfaction],Human,9
+30046148a_metr,Reading skills of 15-year-olds [In percent],Human,9
+19804061e_metr,"Time spent on professional activity and on domestic work and childcare [Women, domestic work and childcare]",Social,8
+19804061a_metr,Time spent on professional activity and on domestic work and childcare [total],Social,8
+19804061c_metr,"Time spent on professional activity and on domestic work and childcare [Men, domestic work and childcare]",Social,8
+19804061b_metr,"Time spent on professional activity and on domestic work and childcare [Men, paid work]",Social,8
+33188596a_metr,Plant genetic resources for food and agriculture [Data],Natural,8
+19804061d_metr,"Time spent on professional activity and on domestic work and childcare [Women, paid work]",Social,8
+33188767a_metr,Expenditure on research and development [In percent],Economic,8
+20225538b_metr,Voluntary work by sex [Men],Social,7
+28325338a_metr,Smoking rate by sex [Women],Human,7
+28325322a_metr,Smoking rate [In percent],Human,7
+20225538a_metr,Voluntary work by sex [Women],Social,7
+28325348b_metr,Overweight by sex [Men],Human,7
+28325345a_metr,Overweight [In percent],Human,7
+28325348a_metr,Overweight by sex [Women],Human,7
+28325338b_metr,Smoking rate by sex [Men],Human,7
+19804335a_metr,Voluntary work [In percent],Social,7
+28325325b_metr,Heavy alcohol consumption by sex [Men],Human,6
+28325292a_metr,Measles immunisation coverage [In percent],Human,6
+28325325a_metr,Heavy alcohol consumption by sex [Women],Human,6
+28325324a_metr,Heavy alcohol consumption [In percent],Human,6
+33188963a_metr,Housing costs [1st],Social,6
+33188963b_metr,Housing costs [2nd],Social,6
+33188963c_metr,Housing costs [3rd],Social,6
+33188963d_metr,Housing costs [4th],Social,6
+33188963e_metr,Housing costs [5th],Social,6
+30325542a_metr,Assessment of dangers associated with climate change by sex [Women],Natural,4
+28325291a_metr,Victims of discrimination by sex [Women],Social,4
+28325289a_metr,Victims of discrimination [In percent],Social,4
+28325291b_metr,Victims of discrimination by sex [Men],Social,4
+33188879a_metr,Soil sealing [In percent],Natural,4
+33188822a_metr,Recreational areas in urban spaces [In percent],Natural,4
+33188523a_metr,Arable land [Thousand hectares],Natural,4
+30325544b_metr,Environmental behaviour in everyday life [Consumption of food from organic production],Natural,4
+30325544a_metr,Environmental behaviour in everyday life [Consideration of energy consumption when buying small electrical devices],Natural,4
+30325542b_metr,Assessment of dangers associated with climate change by sex [Men],Natural,4
+29946665a_metr,Digital skills [In percent],Human,4
+33188968a_metr,Average distance to nearest public transport stop [Meters],Economic,4
+33188895a_metr,Summer pastures [Km²],Natural,4
+33707244a_metr,Independent use of public transport by people with disabilities [In percent],Human,4
+30325545a_metr,Traffic noise pollution [In percent],Human,4
+30325547a_metr,Assessment of dangers associated with climate change [In percent],Natural,4
+28325312a_metr,Fruit and vegetable consumption [In percent],Human,3
+28325320b_metr,Fruit and vegetable consumption by sex [Men],Human,3
+28325320a_metr,Fruit and vegetable consumption by sex [Women],Human,3
+28325349a_metr,Building zones [Inhabitants and jobs (FTE) per hectare],Social,3
+33188508b_metr,1st certification rate at upper secondary level [Foreigners born abroad],Human,3
+33188508a_metr,1st certification rate at upper secondary level [Swiss born in Switzerland],Human,3
+19804339a_metr,Participation in cultural activities [Visiting museums and exhibitions],Social,2
+28325350a_metr,Urban sprawl [Urban penetration units (UPU) per m² of landscape],Natural,2
+19804339b_metr,Participation in cultural activities [Going to festivals (all types)],Social,2
+05626316a_metr,Structure of watercourses [In percent],Natural,1
+33188873b_metr,Greenhouse gas emissions [Target according to Paris Agreement for 2030*],Natural,1
