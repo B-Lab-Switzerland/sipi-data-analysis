@@ -59,21 +59,26 @@ duplicated_rows_fname = "duplicated_rows_removed.csv"
 constant_cols_fname = "constant_metrics.csv"
 outside_years_fname = "outside_year_range.csv"
 sparse_cols_fname = "sparse_metrics.csv"
+clean_vs_raw_plot_fpath = "clean_vs_raw.png"
                    
 # (Stage 5 - Data imputation)
 interp_data_fname = "monet2030_interpolated.csv"
 envlp_data_fname = "monet2030_uncertainty_envelopes.csv"
 interp_tracker_fname = "monet2030_interpolation_tracker.csv"
+interpolated_vs_clean_plot_fpath = "interpolated_vs_clean.png"
 
 # (Stage 6 - Time series decomposition)
 p_values_fname = "stl_p_values.csv" 
 optimal_stl_info_fname = "optimal_stl.csv"
 trends_fname = "monet2030_trends.csv"
 residuals_fname = "monet2030_residuals.csv"
+trends_vs_interpolated_plot_fpath = "trend_vs_interpolated.png"
+residuals_plot_fpath = "residuals.png"
 
 # (Stage 7 - Scaling)
 scaled_ts_fname = "monet2030_scaled_ts.csv"
 scaled_resids_fname = "monet2030_scaled_residuals.csv"
+zscores_plot_fpath = "zscores.png"
 
 # Result files
 # ------------

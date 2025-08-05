@@ -92,7 +92,6 @@ def raw_data_availability_barchart(df: pd.DataFrame,
     return ax
     
 
-
 def visualize_data_availability_colored(df: pd.DataFrame,
                                         x_label: str,
                                         y_label: str,
@@ -163,3 +162,90 @@ def visualize_data_availability_colored(df: pd.DataFrame,
 
     # Save or show
     return ax
+
+def plot_data(line_df: pd.DataFrame, 
+              title: str,
+              scatter_df: pd.DataFrame|None = None, 
+              error_df: pd.DataFrame|None = None,
+              fpath: Path|None = None):
+    """
+    Creates a multi-panel plot showing one time
+    series per panel.
+
+    The line_df data is shown as lines, the
+    scatter_df data is shown as scatter points
+    and error_df is shown as uncertainty envelopes.
+
+    Parameters
+    ----------
+    line_df : pandas.DataFrame
+        Data to be plotted as lines.
+
+    title : str
+        Plot title.
+
+    Optional Parameters
+    -------------------
+    scatter_df : pandas.DataFrame [default: None]
+        Data to be plotted as scatter points
+        (for reference)
+
+    error_df : pandas.DataFrame [default: None]
+        Data to be plotted as uncertainty envelopes
+        around line_df.
+
+    fpath : pathlib.Path
+        Path to file where plot should be
+        saved.
+
+    Raises
+    ------
+    ValueError
+        If error_df is not None and indices of line_df
+        and error_df are not aligned.
+    """
+    fig, axs = plt.subplots(23,5, figsize=(25,60))
+    
+    i = 0
+    for metric in line_df.columns:
+        ax = axs[i//5,i%5]
+
+        # Plot lines
+        line_series = line_df[metric].dropna()
+        line_x = line_series.keys()
+        line_y = line_series.values
+        ax.plot(line_x, line_y, c="r", label="GP")
+        
+        if not(scatter_df is None):
+            # Plot scatter point data for reference
+            scatter_series = scatter_df[metric].dropna()
+            scatter_x = scatter_series.keys()
+            scatter_y = scatter_series.values
+            ax.scatter(scatter_x, scatter_y, c="k", marker='o', label="measurements")
+
+        if not(error_df is None):
+            # Add uncertainty envelopes
+            error_series = error_df[metric].dropna()
+            error_x = error_series.keys()
+            error_y = error_series.values
+
+            if not(all(error_x == line_x)):
+                raise ValueError("error_df and line_df must have identical indices (x-values).")
+            
+            ax.fill_between(
+                error_x,
+                line_y - 1.96 * error_y,
+                line_y + 1.96 * error_y,
+                alpha=0.3,
+                color='blue',
+                label="95% confidence interval")
+        
+        ax.grid(True)
+        ax.set_title(metric)
+        i += 1
+
+    fig.suptitle(title, fontsize=24, y=1.006)
+    plt.tight_layout()
+    if not(fpath is None):
+        fig.savefig(fpath, bbox_inches="tight")
+    plt.show()

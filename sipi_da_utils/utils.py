@@ -15,22 +15,142 @@ class CorrelationAnalysis(object):
     """
     def __init__(self, data: pd.DataFrame, name_map=None, timeseries=True):
         self.data = data
-        self.is_timeseries = timeseries
         self.name_map = name_map
     
-    def compute_correlation(self):
+    def cross_corr(self, lag=0, verbosity=0):
         """
-        """
-        if self.is_timeseries:
-            # use pct_change method to detrend the timeseries
-            self.corrmat = self.data.diff().corr()
-        else:
-            self.corrmat = self.data.corr()
+        Compute correlation between a dataframe and
+        a lagged version of itself. If lag = 0, the
+        result is equivalent to the usual correlation
+        matrix.
 
-    def plot_corr_heatmap(self, title: str, use_name_map: bool = False, mask: Dict["str", List["str"]] = None, fpath: Path=None):
+        Optional Parameters
+        -------------------
+        lag : int [default: 0]
+            Shift in the number of periods used in
+            the second copy of the input matrix:
+            X = self.data
+            Y = X.shifted(periods=lag)
+
+        verbosity : int [default: 0]
+            Verbosity level governing the verbosity 
+            of the output to standard out.
+
+        Returns
+        -------
+        corr_df : pandas.DataFrame
+            Dataframe containing the computed
+            correlation matrix.
+        """
+        # Extract value arrays from dataframes
+        X = self.data.values
+        Y = self.data.shift(periods=lag).values
+        
+        # Masks for non-NaN (1 if valid, 0 if NaN)
+        mask_X = (~np.isnan(X)).astype(float)
+        mask_Y = (~np.isnan(Y)).astype(float)
+        
+        # Fill NaNs with 0 for efficient computation
+        X_filled = np.nan_to_num(X)
+        Y_filled = np.nan_to_num(Y)
+        
+        # Pairwise counts of overlapping non-NaNs
+        n_ij = mask_X.T @ mask_Y  # (n1, n2) matrix
+        
+        # Sums for X, Y, XY, X², Y² over overlapping segments
+        Sx = X_filled.T @ mask_Y    # Sum of X in overlapping segments
+        Sy = mask_X.T @ Y_filled    # Sum of Y in overlapping segments
+        Sxy = X_filled.T @ Y_filled # Sum of X*Y in overlapping segments
+        Sx2 = (X_filled**2).T @ mask_Y  # Sum of X² in overlapping segments
+        Sy2 = mask_X.T @ (Y_filled**2)  # Sum of Y² in overlapping segments
+        
+        # Initialize matrices for numerator and denominators
+        numerator = np.full_like(n_ij, np.nan, dtype=float)
+        denom_x = np.full_like(n_ij, np.nan, dtype=float)
+        denom_y = np.full_like(n_ij, np.nan, dtype=float)
+        
+        # Compute only where n_ij > 0 (avoid division by zero)
+        valid = n_ij > 0
+        numerator[valid] = Sxy[valid] - (Sx[valid] * Sy[valid]) / n_ij[valid]
+        denom_x[valid] = Sx2[valid] - (Sx[valid]**2) / n_ij[valid]
+        denom_y[valid] = Sy2[valid] - (Sy[valid]**2) / n_ij[valid]
+        
+        # Ensure non-negative for square roots
+        denom_x = np.sqrt(np.maximum(denom_x, 0))
+        denom_y = np.sqrt(np.maximum(denom_y, 0))
+        denom = denom_x * denom_y
+        
+        # Compute correlation (handle division by zero)
+        corr = np.full_like(numerator, np.nan, dtype=float)
+        nonzero_denom = (denom != 0)
+        corr[nonzero_denom] = numerator[nonzero_denom] / denom[nonzero_denom]
+        
+        # Set correlations to NaN where n_ij < 2 (insufficient samples)
+        corr[n_ij < 10] = np.nan
+
+        self.corr_df = pd.DataFrame(corr, index=self.data.columns, columns=self.data.columns)
+        return self.corr_df
+
+    def max_abs_corr(self):
+        """
+        Computes maximum absolute correlation
+        between self.data and self.data.shifted
+        for all possible lags.
+
+        Returns
+        -------
+        agg_corrmat : pd.DataFrame
+            Correlation matrix containing the 
+            maximum absolut correlation value
+            between any two pairs of columns
+            maximized over all lags.
+        """
+        # Compute the cross correlations between self.data and all
+        # shifted versions of itself. The upper bound for the number
+        # of lags is given by the number of rows in self.data. Any
+        # larger lag will always result in an all-nan correlation
+        # matrix as the there will not be any overlapping elements
+        # between X and X.shifted(period>n_rows).
+        n_rows = self.data.shape[0]
+        corrmat_list = [self.cross_corr(lag=l) for l in range(n_rows)]
+
+        # Create a 3D numpy array from the result. The 3rd dimension
+        # has length equal to n_rows.
+        self.corrmat_stack = np.dstack([cc.values for cc in corrmat_list])
+
+        # Now we aggregate along that new 3rd dimension. We perform
+        # to aggragations: min and max
+        cols = self.data.columns
+        max_corr = pd.DataFrame(np.nanmax(self.corrmat_stack,axis=-1),
+                                index=cols,
+                                columns=cols
+                               )
+        
+        min_corr = pd.DataFrame(np.nanmin(self.corrmat_stack,axis=-1),
+                                index=cols,
+                                columns=cols
+                               )
+
+        # Ultimately we are interested in correlation in absolute terms.
+        # Therefore, if abs(min)>max, then we actually focus on abs(min)
+        # and don't really care about max. The next code line combines
+        # the two dataframes max_corr and min_corr.abs() in a single 
+        # dataframe where each element is the maximum of the corresponding 
+        # elements in max_corr and min_corr.abs.
+        self.agg_corrmat = max_corr.combine(min_corr.abs(), 
+                                            func=np.maximum)\
+                                   .round(5)
+
+        return self.agg_corrmat
+
+    def plot_corr_heatmap(self, 
+                          df: pd.DataFrame, 
+                          title: str, 
+                          use_name_map: bool = False,
+                          mask: Dict["str", List["str"]] = None,
+                          fpath: Path=None):
         """
         """
-        df = self.corrmat
         if use_name_map:
             df = df.rename(idx_name_map, axis=1).rename(idx_name_map, axis=0)
             
@@ -46,7 +166,7 @@ class CorrelationAnalysis(object):
         if fpath:
             fig.savefig(fpath)
 
-    def _sort_corrmat_by_variances(self, ascending: bool=False) -> pd.DataFrame:
+    def _sort_corrmat_by_variances(self, corrmat: pd.DataFrame, ascending: bool=False) -> pd.DataFrame:
         """
         """
         # Compute variances of values for each metric
@@ -58,7 +178,7 @@ class CorrelationAnalysis(object):
         # This step is performed to sort the rows of the correlation matrix by
         # the variances of the respective metrics.
         varcovar = varsvec.to_frame()\
-                          .merge(self.corrmat, left_index=True, right_index=True)\
+                          .merge(corrmat, left_index=True, right_index=True)\
                           .rename({0: "variance"}, axis=1)\
                           .sort_values(by="variance", ascending=ascending)
         
@@ -67,13 +187,13 @@ class CorrelationAnalysis(object):
 
         return varsorted 
 
-    def drop_strong_correlations(self, threshold: float, verbose: int=0, fpath_corr=None):
+    def drop_strong_correlations(self, corrmat: pd.DataFrame, threshold: float, verbose: int=0, fpath_corr=None):
         """
         Filter which indices to keep and which ones to drop
         """
 
         # Setup
-        varsorted_corrmat = self._sort_corrmat_by_variances(ascending=False)
+        varsorted_corrmat = self._sort_corrmat_by_variances(corrmat, ascending=False)
         n_start = len(varsorted_corrmat)        
         n_remaining = n_start
         n_removed = 0
