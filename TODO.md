@@ -28,8 +28,7 @@ project.
 
 
 ### In Progress
-- [ ] Augment/enhance/improve importance analysis of MONET metrics
-- [ ] Complete documentation (in-code and external)
+- [] Complete documentation (in-code and external)
 
 ### Done ✓
 
@@ -44,4 +43,4 @@ project.
   - [x] Added standard data scaler
   - [x] Perform correlation analysis (monochronic/0 lag and diachronic)
   - [x] Create plots for visual inspection of data transformation pipeline
-  - [x] Data availability analysis 
+  - [x] Data availability analysis
