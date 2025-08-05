@@ -187,7 +187,13 @@ class CorrelationAnalysis(object):
 
         return varsorted 
 
-    def drop_strong_correlations(self, corrmat: pd.DataFrame, threshold: float, verbose: int=0, fpath_corr=None):
+    def drop_strong_correlations(self, 
+                                 corrmat: pd.DataFrame,
+                                 threshold: float,
+                                 id2name_map: pd.DataFrame|None=None,
+                                 verbose: int=0,
+                                 fpath_corr=None
+                                ):
         """
         Filter which indices to keep and which ones to drop
         """
@@ -222,18 +228,18 @@ class CorrelationAnalysis(object):
             # should not be dropped. Therefore, we need to exclude it.
             to_drop_ser = candidates[candidates.keys()!=curr_metric]
         
-            # OPTIONAL: round correlation values to two decimals for
-            # better readability
-            to_drop_ser = to_drop_ser.apply(lambda x: round(x,2))
-
+            # Round correlation values to two decimals for better
+            # readability
+            to_drop_ser = to_drop_ser.apply(lambda x: round(x,3))
+            
             if verbose>0:
                 # Print all metrics that should be dropped because they
                 # are correlated more strongly than threshold (in absolute
                 # value-terms) with the current test metric and are therefore
                 # considered redundant.
-                print(f"{to_drop_ser.name} (var = {monet_vars.sort_values(ascending=False).iloc[i].round(3)}): {to_drop_ser.to_dict()}")
+                print(f"{to_drop_ser.name} (var = {curr_corrs.sort_values(ascending=False).iloc[i].round(3)}): {to_drop_ser.to_dict()}")
 
-            if len(to_drop_ser)>0:
+            if len(to_drop_ser)>0: 
                 correlation_xlsx[to_drop_ser.name] = to_drop_ser
             
             # It follows a sanity check. If any of the metrics to be
@@ -252,7 +258,7 @@ class CorrelationAnalysis(object):
             # Add the new set of redundant metrics to the list "to_drop"
             # and update the number of metrics to be removed
             to_drop.extend(list(to_drop_ser.keys()))
-            n_removed += len(to_drop_ser)
+            n_removed = len(to_drop_ser)
             if verbose>0:
                 print(f"Removing {n_removed} metrics... {n_remaining}-{n_removed}={n_remaining-n_removed}")
         
@@ -267,15 +273,31 @@ class CorrelationAnalysis(object):
             varsorted_corrmat = varsorted_corrmat.loc[to_keep, to_keep] 
 
             if verbose>0:
-                print(f"Remaining: {len(varcovar)} metrics")
+                print(varsorted_corrmat.shape)
+                print(f"Remaining: {n_remaining} metrics")
                 print()
 
             # Update index
             i += 1
 
+        if id2name_map is not None:
+            named_dict = dict()
+            for k, v in correlation_xlsx.items():
+                named_key = id2name_map.loc[k, "metric_name"]
+                named_values = v
+                named_values.index = [id2name_map.loc[mid, "metric_name"] for mid in named_values.keys()]
+                named_values.name = named_key
+                named_dict[named_key] = named_values
+
+            correlation_xlsx = named_dict
+
         if fpath_corr:
             with pd.ExcelWriter(fpath_corr) as writer:
                 for sheet_name, ser in correlation_xlsx.items():
+                    sheet_name = sheet_name.replace("[","_")\
+                                           .replace("]","_")\
+                                           .replace("/","_or_")\
+                                           .replace(":","_") 
                     ser.to_frame().to_excel(writer, sheet_name=sheet_name, index=True)
 
         # Sanity checks
@@ -286,6 +308,10 @@ class CorrelationAnalysis(object):
         if set(to_keep).intersection(set(to_drop)) != set():
             raise ValueError("set(to_keep).intersection(set(to_drop)) != set()")
         if len(to_keep)+len(to_drop) != n_start:
+            if verbose>0:
+                print(f"len(to_keep)={len(to_keep)}")
+                print(f"len(to_drop)={len(to_drop)}")
+                print(f"n_start = {n_start}")
             raise ValueError("len(to_keep)+len(to_drop) != n_start")
 
         return to_keep, correlation_xlsx
