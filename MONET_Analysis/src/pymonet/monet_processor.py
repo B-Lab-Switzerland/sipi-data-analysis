@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
 from pymonet import monet_logger as logger
-from sipi_da_utils import clean, impute, tsa
+from sipi_da_utils import clean, impute, tsa, plot
 
 class Processor(ABC):
     """
@@ -1881,3 +1881,82 @@ class TransformationPipeline(object):
                 stage.get_data(force=force)
 
             return stage.output
+
+    def create_inspection_plots(self, create: str|List[str] = 'all', write=True):
+        """
+        """
+        monet_data = self.stages[2].output.copy()
+        monet_data.index = pd.to_datetime(monet_data.index, format="%Y")
+        
+        monet_clean = self.stages[3].output.copy()
+        monet_clean.index = pd.to_datetime(monet_clean.index, format="%Y")
+        
+        monet_interpolated = self.stages[4].output.copy()
+        monet_interpolated.index = tsa.fractional_years_to_datetime(monet_interpolated.index)
+        
+        monet_envelopes = self.stages[4].additional_results["uncertainty_envelopes"].copy()
+        monet_envelopes.index = tsa.fractional_years_to_datetime(monet_envelopes.index)
+        
+        monet_residuals = self.stages[5].output.copy()
+        monet_trends = self.stages[5].additional_results["trends"].copy()
+        monet_zscores = self.stages[6].output.copy()
+        
+        max_list = ['clean vs raw', 
+                    'interpolated vs clean', 
+                    'trends vs interpolated', 
+                    'residuals',
+                    'zscores']
+
+        if create == 'all':
+            create = max_list
+
+        for action in create:
+            if not action in max_list:
+                raise ValueError(f"Action '{action}' is not valid. Must be one or several of {max_list}.")
+
+        figsaxes = []
+        if 'clean vs raw' in create:
+            plotpath = self.stages[3].current_stage_fpath / const.clean_vs_raw_plot_fpath if write else None
+            fig, ax = plot.plot_data(monet_clean, 
+                                     title="Clean vs raw data (clean = red line, raw = black dots)", 
+                                     scatter_df=monet_data,
+                                     fpath = plotpath
+                                    )
+            figsaxes.append((fig, ax))
+
+        if 'interpolated vs clean' in create:
+            plotpath = self.stages[4].current_stage_fpath / const.interpolated_vs_clean_plot_fpath if write else None
+            fig, ax = plot.plot_data(monet_interpolated,
+                                     title="GP-interpolated vs clean data (interpolated = red line, clean = black dots)",
+                                     scatter_df=monet_clean,
+                                     error_df=monet_envelopes,
+                                     fpath = plotpath
+                                    )
+            figsaxes.append((fig, ax))
+
+        if 'trends vs interpolated' in create:
+            plotpath = self.stages[5].current_stage_fpath / const.trends_vs_interpolated_plot_fpath if write else None
+            fig, ax = plot.plot_data(monet_trends,
+                                     title="Trend lines (red) through GP-interpolated data (black dots)",
+                                     scatter_df=monet_interpolated,
+                                     fpath = plotpath
+                                    )
+            figsaxes.append((fig, ax))
+
+        if 'residuals' in create:
+            plotpath = self.stages[5].current_stage_fpath / const.residuals_plot_fpath if write else None
+            fig, ax = plot.plot_data(monet_residuals, 
+                                     title="Residuals after detrending GP-interpolated data",
+                                     fpath = plotpath
+                                    )
+            figsaxes.append((fig, ax))
+
+        if 'zscores' in create:
+            plotpath = self.stages[6].current_stage_fpath / const.zscores_plot_fpath if write else None
+            fig, ax = plot.plot_data(monet_zscores,
+                                     title="Normalized residuals of detrended data",
+                                     fpath = plotpath
+                                    )
+            figsaxes.append((fig, ax))
+
+        return figsaxes

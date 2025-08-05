@@ -249,3 +249,5 @@ def plot_data(line_df: pd.DataFrame,
     if not(fpath is None):
         fig.savefig(fpath, bbox_inches="tight")
     plt.show()
+
+    return fig, ax
