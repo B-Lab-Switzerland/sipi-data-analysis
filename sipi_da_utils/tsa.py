@@ -42,7 +42,86 @@ class TSAnalyzer(object):
     """
     Time Series Analyzer.
 
+    Performs time series decomposition into
+    trend and residual using LOESS-based STL.
+    The trend is fit by minizing the probability
+    that the residual is non-stationary.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Dataframe containing a time series in every
+        column.
+
+    Optional Parameters
+    -------------------
+    dirpath : pathlib.Path [default: None]
+        Directory to which result files should be
+        written.
+
+    Attributes
+    ----------
+    data : pandas.DataFrame
+        See parameter "data"
+        
+    trend : pandas.DataFrame
+        Container for trends (format is identical
+        to "data" attribute)
+        
+    residuals : pandas.DataFrame
+        Container for residuals (format is identical
+        to "data" attribute)
+        
+    optimal_stl_df : pandas.DataFrame
+        Container for table listing each metric,
+        the corresponding optimal p-value of the
+        augmented Dickey-Fuller test as well
+        as the STL smoothing window length
+        leading to the residuals giving that
+        p-value.
     
+    pvalues_df : pandas.DataFrame
+        Container for table listing the augmented
+        Dickey-Fuller p-values for every STL
+        smoothing length (columns) and every metric
+        (rows).
+    
+    dirpath : pathlib.Path
+        See optional parameter "dirpath"
+
+    If dirpath is not None:
+    save : bool
+        Indicates whether or not the results
+        shall be written to disk. The attribute
+        save is always True when dirpath is not None.
+    
+    p_values_fpath : pathlib.Path
+        Filepath for pvalues_df
+    
+    optimal_stl_info_fpath : pathlib.Path
+        Filepath for optimal_stl_df
+    
+    trends_fpath : pathlib.Path
+        Filepath for trend.
+    
+    residuals_fpath : pathlib.Path
+        Filepath for residuals.
+    
+    stationary_ts_fpath : pathlib.Path
+        Filepath for csv file containing
+        all residual time series that are
+        stationary.
+    
+    non_stationary_ts_fpath : pathlib.Path
+        Filepath for csv file containing
+        all residual time series that are
+        non-stationary.
+    
+    Methods
+    -------
+    reset() -> None
+    decompose(trend_window: int|None=None, optimize: bool=True) -> pd.DataFrame:
+    test_stationarity(data: pandas.DataFrame, alpha: float=0.05) -> Tuple[pandas.DataFrame, pandas.DataFrame]:
     """
     def __init__(self, data: pd.DataFrame, dirpath: Path|None=None):
         self.data = data

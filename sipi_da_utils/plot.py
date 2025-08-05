@@ -12,41 +12,6 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
 
-def plot_interpolation(measurements: Tuple[Iterable, Iterable]=None, 
-                       functions: Tuple[Iterable, Iterable]=None, 
-                       ):
-    """
-    """
-    fig, axs = plt.subplots(23,5, figsize=(25,60))
-
-    i = 0
-    
-    for metric in self.df.columns:
-        [X, y] = self.measurements[metric]
-        [X_common, y_pred, y_std] = self.predictions[metric]
-        [xtrend, ytrend] = self.trend[metric]
-        
-        ax = axs[i//5,i%5]
-        ax.scatter(X,y, c="k", marker='o', label="measurements")
-        ax.plot(X_common, y_pred, c="r", label="GP")
-        ax.fill_between(
-                X_common.flatten(),
-                y_pred - 1.96 * y_std,
-                y_pred + 1.96 * y_std,
-                alpha=0.3,
-                color='blue',
-                label="95% confidence interval")
-        if show_trend:
-            ax.plot(xtrend, ytrend, c="grey", ls="--")
-        ax.grid(True)
-        ax.set_title(metric)
-        ax.set_xlim([min(X)-1, max(X)+2])
-        i += 1
-       
-    plt.tight_layout()
-    plt.show()
-
-    return fig, axs
 
 def raw_data_availability_barchart(df: pd.DataFrame, 
                                    x_label: str,
@@ -55,6 +20,37 @@ def raw_data_availability_barchart(df: pd.DataFrame,
                                    ax: Axes,
                                    show_legend: bool=True) -> Axes:
     """
+    Plots availability of raw data in form
+    of bar chart. Each metric corresponds
+    to a bar and each the length of the bar
+    indicates the number of measurements for
+    that metric.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Data to be analyzed
+
+    x_label : str
+        Label of plot x axis
+
+    y_label : str
+        Label of plot y axis
+
+    title : str
+        Title of plot
+
+    ax : Axes
+        Axes associated to the canvas the plot
+        is drawn on.
+
+    show_legend : bool
+        Whether or not a legend is displayed.
+
+    Returns
+    -------
+    ax : Axes
+        Axes containing plot
     """
     # Reset index for plotting
     df_plot = df.reset_index()
@@ -101,10 +97,28 @@ def visualize_data_availability_colored(df: pd.DataFrame,
     Visualize data availability as a heatmap with custom colors
     for non-null values based on a row attribute (e.g. capital).
     
-    Parameters:
-    - df: DataFrame with the data
-    - capital_col: Series with same index as df, mapping each row
-                   to a category like "Human"
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Data to be analyzed
+
+    x_label : str
+        Label of plot x axis
+
+    y_label : str
+        Label of plot y axis
+
+    title : str
+        Title of plot
+
+    ax : Axes
+        Axes associated to the canvas the plot
+        is drawn on.    
+
+    Returns
+    -------
+    ax : Axes
+        Axes containing plot
     """
     # Map capital categories to colors
     capital_to_color = {'Social': tuple(np.array([177., 41., 48.])/256),
@@ -113,8 +127,23 @@ def visualize_data_availability_colored(df: pd.DataFrame,
                         'Economic': tuple(np.array([216., 109., 34.])/256)}
 
     # Function to apply to each row
-    def replace_with_color(row):
+    def replace_with_color(row: pd.Series) -> pd.Series:
         """
+        Maps data entry to corresponding
+        color.
+
+        Parameter
+        ---------
+        row : pandas.Series
+            Single row of the input dataframe containing
+            numerical values
+
+        Returns
+        -------
+        row : pandas.Series
+            Single row of the input dataframe with all
+            numerical values replaced by a color matching
+            the respective capital.
         """
         color = capital_to_color[row["capital"]]
         row = row.apply(lambda val: color if pd.api.types.is_number(val) else val)

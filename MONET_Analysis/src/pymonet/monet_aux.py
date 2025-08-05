@@ -90,6 +90,7 @@ def xlsx_hasher(xlsx_dict: Dict):
 
 def json_dump(dirpath, file, jsonstr):
     """
+    Write json string to file.
     """
     dirpath.mkdir(parents=True, exist_ok=True)
     with open(dirpath / file, 'w') as f:

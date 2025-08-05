@@ -12,12 +12,49 @@ import seaborn as sns
 
 class CorrelationAnalysis(object):
     """
+    Perform correlation analysis of stationary
+    time series data.
+
+    Assumes that input data represent stationary
+    time series data (i.e. no de-trending or other
+    time series decomposition is performed).
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+
+    Optional Parameters
+    -------------------
+    id2name_map : pandas.DataFrame [default: None]
+        DataFrame with Monet2030 metric IDs
+        as index and a column "metric_name"
+        containing the corresponding metric name.
+
+    Attributes
+    ----------
+    data : pandas.DataFrame
+        See parameter "data".
+
+    Methods
+    -------
+    cross_corr(lag: int=0, verbosity: bool=0) -> pandas.DataFrame
+    max_abs_corr() -> pandas.DataFrame
+    plot_corr_heatmap(df: pandas.DataFrame, 
+                      title: str,
+                      fpath: Path=None
+                      ) -> None
+    drop_strong_correlations(corrmat: pandas.DataFrame,
+                             threshold: float,
+                             id2name_map: pandas.DataFrame|None=None,
+                             verbose: int=0,
+                             fpath_corr=None
+                             ):
     """
-    def __init__(self, data: pd.DataFrame, name_map=None, timeseries=True):
+    def __init__(self, data: pd.DataFrame, id2name_map: pd.DataFrame|None = None) -> pd.DataFrame:
         self.data = data
-        self.name_map = name_map
-    
-    def cross_corr(self, lag=0, verbosity=0):
+        self.id2name_map = id2name_map
+        
+    def cross_corr(self, lag: int = 0, verbosity: int = 0) -> pd.DataFrame:
         """
         Compute correlation between a dataframe and
         a lagged version of itself. If lag = 0, the
@@ -91,7 +128,7 @@ class CorrelationAnalysis(object):
         self.corr_df = pd.DataFrame(corr, index=self.data.columns, columns=self.data.columns)
         return self.corr_df
 
-    def max_abs_corr(self):
+    def max_abs_corr(self) -> pandas.DataFrame:
         """
         Computes maximum absolute correlation
         between self.data and self.data.shifted
@@ -146,12 +183,27 @@ class CorrelationAnalysis(object):
     def plot_corr_heatmap(self, 
                           df: pd.DataFrame, 
                           title: str, 
-                          use_name_map: bool = False,
-                          mask: Dict["str", List["str"]] = None,
-                          fpath: Path=None):
+                          fpath: Path|None = None):
         """
+        Plots heatmap of input dataframe df.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            The data which shall be visualized
+            as a heatmap.
+
+        title : str
+            Title of the heatmap plot
+
+        Optional Parameters
+        -------------------
+        fpath : pathlib.Path [default: None]
+            Path to file to which the heatmap plot
+            should be written.
         """
-        if use_name_map:
+        if self.id2name_map:
+            idx_name_map = self.id2name_map["metric_name"].to_dict()
             df = df.rename(idx_name_map, axis=1).rename(idx_name_map, axis=0)
             
         fig, ax = plt.subplots(figsize=(10,9))    
@@ -160,14 +212,36 @@ class CorrelationAnalysis(object):
         plt.tight_layout()
 
         fig_title = "./" + title
-        if self.is_timeseries:
-            fig_title += " (detrended)"
-
+    
         if fpath:
             fig.savefig(fpath)
 
-    def _sort_corrmat_by_variances(self, corrmat: pd.DataFrame, ascending: bool=False) -> pd.DataFrame:
+    def _sort_corrmat_by_variances(self, 
+                                   corrmat: pd.DataFrame,
+                                   ascending: bool=False
+                                  ) -> pd.DataFrame:
         """
+        Merges a column of metric variances with the
+        input correlation matrix and sorts the rows of
+        the result by the variance column.
+
+        Parameters
+        ----------
+        corrmat : pandas.DataFrame
+            Correlation matrix
+            
+        Optional Parameters
+        -------------------
+        ascending : bool [default: False]
+            Indicates sorting order of rows
+            in correlation matrix.
+            
+        Retruns
+        -------
+        varsorted : pandas.DataFrame
+            Correlation matrix with new, prepended
+            variance column. Rows are sorted by variance
+            column.
         """
         # Compute variances of values for each metric
         varsvec = self.data.var()
@@ -190,12 +264,76 @@ class CorrelationAnalysis(object):
     def drop_strong_correlations(self, 
                                  corrmat: pd.DataFrame,
                                  threshold: float,
-                                 id2name_map: pd.DataFrame|None=None,
                                  verbose: int=0,
-                                 fpath_corr=None
-                                ):
+                                 fpath_corr: Path|None=None
+                                ) -> Tuple[List[str], Dict[str, pandas.Series]]:
         """
-        Filter which indices to keep and which ones to drop
+        Filter which indices to keep and which ones to drop.
+
+        This method prunes the metrics listed in corrmat
+        based on their mutual correlations. It does so
+        in order of decending variance of each metric, i.e.
+        the code starts looking at the highest-variance
+        metric (let's call it "M1") and prunes all metrics
+        that are correlated with M1 more than threshold.
+        From the surviving (not pruned) metrics again
+        look at the highest-variance one and repeat the
+        process until there are no more metrics that
+        have not yet been pruned or visited.
+        
+        Parameters
+        ----------
+        corrmat : pandas.DataFrame
+            Correlation matrix.
+
+        threshold : float
+            Correlation threshold. Any correlation
+            between two metrics higher than threshold
+            is considered to be an indicator that the
+            two metrics are redundant.
+
+        Optional Parameters
+        -------------------
+        verbos : int [default: 0]
+            Verbosity level for standard out.
+
+        fpath_corr : pathlib.Path [default: None]
+            Path to file to which the matrix
+            "correlation_xlsx" should be written.
+
+        Returns
+        -------
+        to_keep: List[str]
+            List of metric IDs or names that survive
+            the filtering.        
+        
+        correlation_xlsx : Dict[str, pandas.Series]
+            Dictionary with key-value pairs, where the
+            key is a metric ID or name and the value is
+            a pandas.Series containing all other metrics
+            that are correlated more than the threshold
+            with the key.
+
+        Raises
+        ------
+        ValueError
+            If a metric is tried to be dropped that was already
+            dropped earlier. This indicates a problem in the code.
+
+        ValueError
+            If kept_metrics != to_keep, i.e. if the length of the 
+            output list to_keep is not equal to the number of metrics
+            surviving in the correlation matrix.
+            
+        ValueError
+            If set(to_keep).intersection(set(to_drop)) != set(), i.e.
+            if a metric is both kept and being dropped. That's impossible!
+
+        ValueError
+            If len(to_keep)+len(to_drop) != n_start, i.e. if the sum
+            of the kept and dropped metrics is not equal to all the metrics
+            we started with. This means that either we have missed a metric
+            or we looked at one or more metrics more than just once.
         """
 
         # Setup
@@ -280,12 +418,12 @@ class CorrelationAnalysis(object):
             # Update index
             i += 1
 
-        if id2name_map is not None:
+        if self.id2name_map is not None:
             named_dict = dict()
             for k, v in correlation_xlsx.items():
-                named_key = id2name_map.loc[k, "metric_name"]
+                named_key = self.id2name_map.loc[k, "metric_name"]
                 named_values = v
-                named_values.index = [id2name_map.loc[mid, "metric_name"] for mid in named_values.keys()]
+                named_values.index = [self.id2name_map.loc[mid, "metric_name"] for mid in named_values.keys()]
                 named_values.name = named_key
                 named_dict[named_key] = named_values
 

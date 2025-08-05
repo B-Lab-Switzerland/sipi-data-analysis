@@ -10,6 +10,8 @@ from pathlib import Path
 # 3rd party imports
 import pandas as pd
 import numpy as np
+from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
 
 from sklearn.preprocessing import StandardScaler
 
@@ -1882,8 +1884,58 @@ class TransformationPipeline(object):
 
             return stage.output
 
-    def create_inspection_plots(self, create: str|List[str] = 'all', write=True):
+    def create_inspection_plots(self,
+                                create: str|List[str] = 'all',
+                                write: bool=True
+                               ) -> List[Tuple[Figure,Axes]]:
         """
+        Create plots for visual inspection of data
+        transformation pipeline.
+
+        Can create on or several plots depending
+        on input instructions.
+
+        Optional Parameters
+        -------------------
+        create : str|List[str] [default: 'all']
+            List of instructions indicating which
+            plots should be created. Must be either
+            'all' or one value or a combination of
+            values from the following list: 
+            
+            ['clean vs raw', 
+             'interpolated vs clean', 
+             'trends vs interpolated', 
+             'residuals',
+             'zscores'
+             ]
+
+        write : bool [default: True]
+            If True, saves plot(s) to disk
+
+        Returns
+        -------
+        figsaxes : List[Tuple[Figure,Axes]]
+            The list contains one tuple for every
+            entry in the create parameter. Each
+            tuple contains a Figure and an Axes
+            element.
+
+        Raises
+        ------
+        ValueError
+            If create is of type str but not equal
+            to 'all'.
+
+        ValueError
+            If create is of type List but any element
+            is not in the list
+
+            ['clean vs raw', 
+             'interpolated vs clean', 
+             'trends vs interpolated', 
+             'residuals',
+             'zscores']
         """
         monet_data = self.stages[2].output.copy()
         monet_data.index = pd.to_datetime(monet_data.index, format="%Y")
@@ -1907,8 +1959,11 @@ class TransformationPipeline(object):
                     'residuals',
                     'zscores']
 
-        if create == 'all':
-            create = max_list
+        if isinstance(create, str):
+            if create == 'all':
+                create = max_list
+            else:
+                raise ValueError("String-typed value of parameter 'create' must be equal to 'all'.")
 
         for action in create:
             if not action in max_list:
