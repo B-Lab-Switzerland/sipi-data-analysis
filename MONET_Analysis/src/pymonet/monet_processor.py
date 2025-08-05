@@ -1409,8 +1409,12 @@ class MonetTSDecomposer(Processor):
         if self.verbosity > 0:
             print("Reading imputed data from disk...")
 
-        self.output = pd.read_csv(self.current_stage_fpath / const.residuals_fname).set_index("date")
-        self.additional_results["trends"] = pd.read_csv(self.current_stage_fpath / const.trends_fname).set_index("date")
+        self.output = pd.read_csv(self.current_stage_fpath / const.residuals_fname, 
+                                                        parse_dates=["date"]
+                                                       ).set_index("date")
+        self.additional_results["trends"] = pd.read_csv(self.current_stage_fpath / const.trends_fname, 
+                                                        parse_dates=["date"]
+                                                       ).set_index("date")
         self.additional_results["p_values"] = pd.read_csv(self.current_stage_fpath / const.p_values_fname).set_index("metric")
         self.additional_results["optimal_stl"] = pd.read_csv(self.current_stage_fpath / const.optimal_stl_info_fname).set_index("metric")
         
@@ -1531,7 +1535,9 @@ class MonetDataScaler(Processor):
         if self.verbosity > 0:
             print("Reading imputed data from disk...")
 
-        self.output = pd.read_csv(self.current_stage_fpath / const.scaled_resids_fname).set_index("date")
+        self.output = pd.read_csv(self.current_stage_fpath / const.scaled_resids_fname, 
+                                                        parse_dates=["date"]
+                                                       ).set_index("date")
         #self.additional_results["scaled_time_series"] = pd.read_csv(self.current_stage_fpath / const.scaled_ts_fname).set_index("date")
 
         print("-> done!")
