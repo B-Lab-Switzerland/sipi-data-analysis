@@ -23,7 +23,6 @@ project.
 - [ ] Add a proper logger 
 - [ ] Augment/enhance/improve importance analysis of MONET metrics  
   - [ ] Compute summary statistics for each time series (mean, std, IQR, etc.)
-  - [ ] Perform autocorrelation analysis
   - [ ] Check if time series can be clustered (cluster analysis, T-SNE, hierarchical clustering, etc.)
 - [ ] Re-align the WISE analysis with the MONET analysis
 
@@ -43,3 +42,6 @@ project.
 - [x] Create a metric ID-to-name map
 - [x] Augment/enhance/improve importance analysis of MONET metrics  
   - [x] Added standard data scaler
+  - [x] Perform correlation analysis (monochronic/0 lag and diachronic)
+  - [x] Create plots for visual inspection of data transformation pipeline
+  - [x] Data availability analysis 
