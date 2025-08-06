@@ -442,8 +442,43 @@ class DataFileLoader(object):
         else:
             self._scrape_data()
         
-class Scraper(object):
+class MonetLoader(object):
     """
+    Loads data from MONET2030 database
+    into memory and stores it on disk.
+
+    This class provides the functionality
+    to load the MONET2030 database through
+    a single user interface provided by the
+    method "load". The code automatically 
+    checks which files are already available
+    on disk and which ones need to be scraped
+    from the WWW.
+
+    Parameters
+    ----------
+    None
+
+    Attributes
+    ----------
+    indicators_metatable : pandas.DataFrame
+        Table listing all high-level MONET2030
+        indicators together with additional 
+        information.
+
+    observables_metatble : pandas.DataFrame
+        Table listing all MONET2030 observables
+        (i.e. subindicators) together with
+        additional information.
+
+    capitals_map : pandas.DataFrame
+        A mapping of all MONET2030 indicators
+        to the four capitals "Social", "Human",
+        "Natural", and "Economic".
+
+    Methods
+    -------
+    load() -> List[Tuple[str, Dict]]
     """
     def __init__(self):
         self.indicators_metatable = None
@@ -551,7 +586,7 @@ class Scraper(object):
 
         return raw_data
         
-    async def scrape(self) -> List[Tuple[str, Dict]]:
+    async def load(self) -> List[Tuple[str, Dict]]:
         """
         Scrapes all the web data including meta data
         about indicators and sub-indicators ("observables")
