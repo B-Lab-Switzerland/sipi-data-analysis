@@ -733,7 +733,7 @@ class Stage2(Processor):
 
             self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
 
-        self.additional_results["metric_id2name_map"] = pd.read_csv(self.current_stage_fpath / const.metric_id2name_fname)
+        self.additional_results["metric_id2name_map"] = pd.read_csv(self.current_stage_fpath / const.metric_id2name_fname).set_index("metric_id")
 
         print("-> done!")
 
@@ -1881,6 +1881,37 @@ class TransformationPipeline(object):
                 stage.get_data(force=force)
 
             return stage.output
+
+    def collect_results(self) -> Dict[str, pd.DataFrame|List[str]]:
+        """
+        Collect all the results computed during
+        the data transformation into a single
+        dictionary.
+
+        Returns
+        -------
+        all_results : Dict[str, pd.DataFrame|List[str]]
+        """
+        all_results = {"raw": self.stages[2].output,
+                       "clean": self.stages[3].output,
+                       "interpolated": self.stages[4].output,
+                       "residuals": self.stages[5].output,
+                       "zscores": self.stages[6].output
+                      }
+        
+        for stage in self.stages:
+            try:
+                for (k,v) in stage.additional_results.items():
+                    all_results[k] = v
+            except KeyError:
+                continue
+
+        print("There results can be accessed via the following keys:")
+        for k in all_results.keys():
+            print(".", k)
+            
+        return all_results
+        
 
     def create_inspection_plots(self, create: str|List[str] = 'all', write=True):
         """
