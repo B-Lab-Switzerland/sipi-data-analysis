@@ -100,6 +100,9 @@ all_corrmat_fpath = corra_dir / "corrmat_all.pdf"
 pruned_corrmat_fpath = corra_dir / "corrmat_pruned.pdf"
 
 # (performance analysis / perfa_dir)
+slope_stats_fpath = perfa_dir / "slope_norm_stats.csv"
+slope_distro_plot_fpath = perfa_dir / "slope_norm_distribution.png"
+performance_ranking_plot_fpath = perfa_dir / "performance_ranking_plot.png"
 top3_metrics_fpath = perfa_dir / "top3_metrics.xlsx"
 bottom3_metrics_fpath = perfa_dir / "bottom3_metrics.xlsx"
 top3_metrics_per_cap_fpath = perfa_dir / "top3_metrics_per_capital.xlsx"
@@ -112,3 +115,4 @@ n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_
 # URLs
 # ====
 url_all_monet2030_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html'
+key_indicator_url = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/key-indicators.html'

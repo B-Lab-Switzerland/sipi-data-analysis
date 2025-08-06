@@ -471,6 +471,15 @@ class MonetLoader(object):
         (i.e. subindicators) together with
         additional information.
 
+    metatble : pandas.DataFrame
+        Table listing all MONET2030 observables
+        together with combined additional meta
+        information from both indicators_metatable
+        and observables_metatble.
+
+    key_indicators_df : pandas.DataFrame
+        List of MONET2030 key indicators
+        
     capitals_map : pandas.DataFrame
         A mapping of all MONET2030 indicators
         to the four capitals "Social", "Human",
@@ -483,6 +492,8 @@ class MonetLoader(object):
     def __init__(self):
         self.indicators_metatable = None
         self.observables_metatable = None
+        self.metatable = None
+        self.key_indicators_df = self._load_key_indicators()
         self.capitals_map = self._load_capmap()
 
         # ================================================ #
@@ -511,6 +522,19 @@ class MonetLoader(object):
         """
         capmap = pd.read_csv(const.capmap_path) 
         return capmap
+
+    def _load_key_indicators(self) -> pd.DataFrame:
+        """
+        Loads table of official MONET2039 key indicators
+        as defined on const.key_indicator_url
+
+        Returns
+        -------
+        key_indicators_df : pandas.DataFrame
+            List of MONET2030 key indicators
+        """
+
+        return pd.read_csv(const.key_indicators)
         
     async def _scrape_indicators_metatable(self) -> pd.DataFrame:
         """
@@ -585,6 +609,34 @@ class MonetLoader(object):
         raw_data = dfl.raw_data_list
 
         return raw_data
+
+    def _create_full_meta_table(self):
+        """
+        Create a table with all available
+        meta information on observables level.
+        """
+        # The full meta table is just the join
+        # of the observables_metatable and
+        # indicators_metatable
+        full_meta_table = self.observables_metatable.merge(self.indicators_metatable, 
+                                                           left_on="indicator_id",
+                                                           right_on="id"
+                                                          )
+
+        # Clean up repeated columns
+        # -- 1) remove all duplicated columns resulting from join, i.e.
+        #       those with suffix "_y"
+        repeated_cols = [c for c in full_meta_table.columns if c.endswith("_y")]
+        full_meta_table.drop(repeated_cols, axis=1, inplace=True)
+
+        # -- 2) strip away the "_x" suffix wherever necessary
+        full_meta_table.columns = [c.replace("_x","") for c in full_meta_table.columns]
+
+        # Add "is_key" column
+        full_meta_table["is_key"] = False
+        full_meta_table.loc[full_meta_table["indicator_id"].isin(self.key_indicators_df["id"]), "is_key"] = True
+        
+        self.metatable = full_meta_table
         
     async def load(self) -> List[Tuple[str, Dict]]:
         """
@@ -624,6 +676,9 @@ class MonetLoader(object):
                                  "data_file_url"
                                 ]]
         self.observables_metatable = observables_mt
+
+        # -- Combining meta_tables
+        self._create_full_meta_table()
         
         # Step 3
         print("Getting data files..")
