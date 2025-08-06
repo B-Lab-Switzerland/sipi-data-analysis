@@ -1,26 +1,26 @@
-metric_id,metric_name,capital - primary,count
-33707231a_metr,Modal split in goods transport [Percentage of tonne-kilometres],Natural,45
-33188545a_metr,Level of public debt [In percent],Economic,35
-33188513a_metr,Investment to gross domestic product ratio [In percent],Economic,30
-33188518a_metr,Environmental taxes [Data],Natural,29
-33707221a_metr,Modal split of passenger transport [Percentage of passenger-kilometres],Natural,27
-29946667a_metr,Employment in environmental sector [In percent],Economic,24
-28325038a_metr,Intensity of the greenhouse gas footprint [Index 2000 = 100],Natural,23
-33188546a_metr,Disparities in the financial capacities of the cantons [Data],Economic,18
-33188551a_metr,Poverty of employed persons [In percent],Human,16
-33707214a_metr,Participation in elections and federal popular votes [Elections],Social,15
-33707214b_metr,Participation in elections and federal popular votes [Popular votes],Social,15
-33188550a_metr,Language use: multilingualism [In percent],Social,13
-33188532a_metr,Life satisfaction [High degree of satisfaction],Human,9
-33188532b_metr,Life satisfaction [Very high degree of satisfaction],Human,9
-28325222a_metr,Number of researchers [Data],Economic,9
-19804335a_metr,Voluntary work [In percent],Social,7
-20225538b_metr,Voluntary work by sex [Men],Social,7
-20225538a_metr,Voluntary work by sex [Women],Social,7
-28325348b_metr,Overweight by sex [Men],Human,7
-28325348a_metr,Overweight by sex [Women],Human,7
-28325345a_metr,Overweight [In percent],Human,7
-33188523a_metr,Arable land [Thousand hectares],Natural,4
-29946665a_metr,Digital skills [In percent],Human,4
-19804339b_metr,Participation in cultural activities [Going to festivals (all types)],Social,2
-19804339a_metr,Participation in cultural activities [Visiting museums and exhibitions],Social,2
+metric_id,metric_name,metric_description,capital - primary,count
+33707231a_metr,Modal split in goods transport [Percentage of tonne-kilometres],Share of rail in total overland goods transport (rail and road),Natural,45
+33188545a_metr,Level of public debt [In percent],"Consolidated debt of the Confederation, cantons, communes and social insurances in relation to gross domestic product",Economic,35
+33188513a_metr,Investment to gross domestic product ratio [In percent],Gross investments in relation to gross domestic product,Economic,30
+33188518a_metr,Environmental taxes [Data],Ratio between income taxes and environmentally related taxes,Natural,29
+33707221a_metr,Modal split of passenger transport [Percentage of passenger-kilometres],Share of public transport in motorised passenger transport by road and rail,Natural,27
+29946667a_metr,Employment in environmental sector [In percent],Share in total employment,Economic,24
+28325038a_metr,Intensity of the greenhouse gas footprint [Index 2000 = 100],Greenhouse gas footprint to final domestic demand of goods and services ratio¹,Natural,23
+33188546a_metr,Disparities in the financial capacities of the cantons [Data],Standard deviation of indices of canton resources (before equalisation),Economic,18
+33188551a_metr,Poverty of employed persons [In percent],Poverty rates among employed persons,Human,16
+33707214a_metr,Participation in elections and federal popular votes [Elections],In percent,Social,15
+33707214b_metr,Participation in elections and federal popular votes [Popular votes],In percent,Social,15
+33188550a_metr,Language use: multilingualism [In percent],Proportion of the permanent resident population aged 15 or over that regularly uses at least two languages¹,Social,13
+33188532a_metr,Life satisfaction [High degree of satisfaction],Proportion of the population aged 16 and over with a high or very high degree of satisfaction with their current life - In percent,Human,9
+33188532b_metr,Life satisfaction [Very high degree of satisfaction],Proportion of the population aged 16 and over with a high or very high degree of satisfaction with their current life - In percent,Human,9
+28325222a_metr,Number of researchers [Data],In full-time equivalents per Thousand employed persons,Economic,9
+19804335a_metr,Voluntary work [In percent],Share of the permanent resident population aged 15 and over that carries out voluntary work,Social,7
+20225538b_metr,Voluntary work by sex [Men],Share of the permanent resident population aged 15 and over that carries out voluntary work - In percent,Social,7
+20225538a_metr,Voluntary work by sex [Women],Share of the permanent resident population aged 15 and over that carries out voluntary work - In percent,Social,7
+28325348b_metr,Overweight by sex [Men],Share of the population aged 15 and over who are overweight (BMI of 25 or more) - In percent,Human,7
+28325348a_metr,Overweight by sex [Women],Share of the population aged 15 and over who are overweight (BMI of 25 or more) - In percent,Human,7
+28325345a_metr,Overweight [In percent],Share of population aged 15 and over who are overweight (BMI of 25 or more),Human,7
+33188523a_metr,Arable land [Thousand hectares],,Natural,4
+29946665a_metr,Digital skills [In percent],Share of total population aged 15 to 88 years whose digital skills exceed basic skills,Human,4
+19804339b_metr,Participation in cultural activities [Going to festivals (all types)],Share of the population aged 15 and over who participated in following activities - In percent,Social,2
+19804339a_metr,Participation in cultural activities [Visiting museums and exhibitions],Share of the population aged 15 and over who participated in following activities - In percent,Social,2
