@@ -236,13 +236,13 @@ class MetaInfoTableLoader(object):
         together with the URLs pointing to the respective
         subpages.
 
-    metainfo_table_path : str
+    observable_meta_table_path : str
         Path where the meta information table is stored
         or will be written to.
     """
-    def __init__(self, indicator_df: pd.DataFrame, metainfo_table_path: str):
+    def __init__(self, indicator_df: pd.DataFrame, observable_meta_table_path: str):
         self.indicators = indicator_df
-        self.fpath = metainfo_table_path
+        self.fpath = observable_meta_table_path
         self.table = None
         
     async def _scrape_table(self):
@@ -706,7 +706,7 @@ class MonetLoader(object):
             pointing to the individual data files).
         """
         mitl = MetaInfoTableLoader(self.indicators_metatable,
-                                   const.metainfo_table_path
+                                   const.observable_meta_table_path
                                   )
         await mitl.get_table()
         observables_metatable = mitl.table
@@ -738,34 +738,6 @@ class MonetLoader(object):
         raw_data = dfl.raw_data_list
 
         return raw_data
-
-    def _create_full_meta_table(self):
-        """
-        Create a table with all available
-        meta information on observables level.
-        """
-        # The full meta table is just the join
-        # of the observables_metatable and
-        # indicators_metatable
-        full_meta_table = self.observables_metatable.merge(self.indicators_metatable, 
-                                                           left_on="indicator_id",
-                                                           right_on="id"
-                                                          )
-
-        # Clean up repeated columns
-        # -- 1) remove all duplicated columns resulting from join, i.e.
-        #       those with suffix "_y"
-        repeated_cols = [c for c in full_meta_table.columns if c.endswith("_y")]
-        full_meta_table.drop(repeated_cols, axis=1, inplace=True)
-
-        # -- 2) strip away the "_x" suffix wherever necessary
-        full_meta_table.columns = [c.replace("_x","") for c in full_meta_table.columns]
-
-        # Add "is_key" column
-        full_meta_table["is_key"] = False
-        full_meta_table.loc[full_meta_table["indicator_id"].isin(self.key_indicators_df["id"]), "is_key"] = True
-        
-        self.metatable = full_meta_table
         
     async def load(self) -> List[Tuple[str, Dict]]:
         """

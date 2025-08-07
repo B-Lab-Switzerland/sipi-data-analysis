@@ -35,6 +35,7 @@ metainfo_table_path = meta_dir / "monet_datafile_summary_table.csv"
 metainfo_table_path_full = meta_dir / "observables_metainformation_table.csv"
 metrics_meta_table_fpath = meta_dir / "metrics_meta_table.csv"
 
+
 # Log files
 # ---------
 log_file_raw_data = log_dir / "raw_data_log.csv"
@@ -84,9 +85,12 @@ zscores_plot_fpath = "zscores.png"
 # Result files
 # ------------
 # (data availability analysis / data_availability_dir)
+n_metrics_per_cap_fpath = data_availability_dir / "n_metrics_per_capital.csv"
+n_metrics_per_cap_plot_fpath = data_availability_dir / "n_metrics_per_capital.png"
 n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
 n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
-data_availability_barchart_fpath = data_availability_dir / "data_availability_barchart.png"
+data_availability_fpath = data_availability_dir / "data_availability.csv"
+data_availability_chart_fpath = data_availability_dir / "data_availability_all.pdf"
 sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.csv"
 irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.csv"
 
