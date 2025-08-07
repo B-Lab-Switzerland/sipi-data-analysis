@@ -29,9 +29,10 @@ data_availability_dir = results_dir / "data_availability_analysis"
 # ----------
 capmap_path = meta_dir / "capitals_map.csv"
 trend_directions = meta_dir / "trend_directions.csv"
-key_indicators = meta_dir / "key_indicators.csv"
+key_indicators_fpath = meta_dir / "key_indicators.csv"
 indicator_table_path = meta_dir / "indicator_table.csv"
 metainfo_table_path = meta_dir / "monet_datafile_summary_table.csv"
+metainfo_table_path_full = meta_dir / "observables_metainformation_table.csv"
 
 # Log files
 # ---------
@@ -112,3 +113,4 @@ n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_
 # URLs
 # ====
 url_all_monet2030_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html'
+url_monet2030_key_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/key-indicators.html'
