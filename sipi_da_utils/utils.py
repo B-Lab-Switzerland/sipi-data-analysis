@@ -128,7 +128,7 @@ class CorrelationAnalysis(object):
         self.corr_df = pd.DataFrame(corr, index=self.data.columns, columns=self.data.columns)
         return self.corr_df
 
-    def max_abs_corr(self) -> pandas.DataFrame:
+    def max_abs_corr(self) -> pd.DataFrame:
         """
         Computes maximum absolute correlation
         between self.data and self.data.shifted
@@ -266,7 +266,7 @@ class CorrelationAnalysis(object):
                                  threshold: float,
                                  verbose: int=0,
                                  fpath_corr: Path|None=None
-                                ) -> Tuple[List[str], Dict[str, pandas.Series]]:
+                                ) -> Tuple[List[str], Dict[str, pd.Series]]:
         """
         Filter which indices to keep and which ones to drop.
 
