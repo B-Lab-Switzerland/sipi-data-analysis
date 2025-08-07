@@ -706,7 +706,7 @@ class MonetLoader(object):
             pointing to the individual data files).
         """
         mitl = MetaInfoTableLoader(self.indicators_metatable,
-                                   const.observable_meta_table_path
+                                   const.metainfo_table_path
                                   )
         await mitl.get_table()
         observables_metatable = mitl.table

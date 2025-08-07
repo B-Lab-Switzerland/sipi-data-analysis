@@ -782,7 +782,7 @@ class Stage2(Processor):
 
             self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
 
-        self.additional_results["metrics_metatable"] = pd.read_csv(metrics_meta_table_fpath).set_index("metric_id")
+        self.additional_results["metrics_metatable"] = pd.read_csv(const.metrics_meta_table_fpath).set_index("metric_id")
 
         print("-> done!")
 
@@ -2015,6 +2015,8 @@ class TransformationPipeline(object):
              'residuals',
              'zscores']
         """
+        monet_metric_metatable = self.stages[1].additional_results["metrics_metatable"]
+        
         monet_data = self.stages[2].output.copy()
         monet_data.index = pd.to_datetime(monet_data.index, format="%Y")
         
@@ -2051,8 +2053,9 @@ class TransformationPipeline(object):
         if 'clean vs raw' in create:
             plotpath = self.stages[3].current_stage_fpath / const.clean_vs_raw_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_clean, 
-                                     title="Clean vs raw data (clean = red line, raw = black dots)", 
-                                     scatter_df=monet_data,
+                                     title = "Clean vs raw data (clean = red line, raw = black dots)", 
+                                     meta_info = monet_metric_metatable,
+                                     scatter_df = monet_data,
                                      fpath = plotpath
                                     )
             figsaxes.append((fig, ax))
@@ -2060,9 +2063,11 @@ class TransformationPipeline(object):
         if 'interpolated vs clean' in create:
             plotpath = self.stages[4].current_stage_fpath / const.interpolated_vs_clean_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_interpolated,
-                                     title="GP-interpolated vs clean data (interpolated = red line, clean = black dots)",
-                                     scatter_df=monet_clean,
-                                     error_df=monet_envelopes,
+                                     monet_metric_metatable,
+                                     title = "GP-interpolated vs clean data (interpolated = red line, clean = black dots)",
+                                     meta_info = monet_metric_metatable,
+                                     scatter_df = monet_clean,
+                                     error_df = monet_envelopes,
                                      fpath = plotpath
                                     )
             figsaxes.append((fig, ax))
@@ -2070,8 +2075,10 @@ class TransformationPipeline(object):
         if 'trends vs interpolated' in create:
             plotpath = self.stages[5].current_stage_fpath / const.trends_vs_interpolated_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_trends,
-                                     title="Trend lines (red) through GP-interpolated data (black dots)",
-                                     scatter_df=monet_interpolated,
+                                     monet_metric_metatable,
+                                     title = "Trend lines (red) through GP-interpolated data (black dots)",
+                                     meta_info = monet_metric_metatable,
+                                     scatter_df = monet_interpolated,
                                      fpath = plotpath
                                     )
             figsaxes.append((fig, ax))
@@ -2079,7 +2086,9 @@ class TransformationPipeline(object):
         if 'residuals' in create:
             plotpath = self.stages[5].current_stage_fpath / const.residuals_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_residuals, 
-                                     title="Residuals after detrending GP-interpolated data",
+                                     monet_metric_metatable,
+                                     title = "Residuals after detrending GP-interpolated data",
+                                     meta_info = monet_metric_metatable,
                                      fpath = plotpath
                                     )
             figsaxes.append((fig, ax))
@@ -2087,7 +2096,8 @@ class TransformationPipeline(object):
         if 'zscores' in create:
             plotpath = self.stages[6].current_stage_fpath / const.zscores_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_zscores,
-                                     title="Normalized residuals of detrended data",
+                                     title = "Normalized residuals of detrended data",
+                                     meta_info = monet_metric_metatable,
                                      fpath = plotpath
                                     )
             figsaxes.append((fig, ax))

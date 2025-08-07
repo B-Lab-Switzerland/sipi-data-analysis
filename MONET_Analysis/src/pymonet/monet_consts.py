@@ -32,7 +32,6 @@ trend_directions = meta_dir / "trend_directions.csv"
 key_indicators_fpath = meta_dir / "key_indicators.csv"
 indicator_table_path = meta_dir / "indicator_table.csv"
 metainfo_table_path = meta_dir / "monet_datafile_summary_table.csv"
-metainfo_table_path_full = meta_dir / "observables_metainformation_table.csv"
 metrics_meta_table_fpath = meta_dir / "metrics_meta_table.csv"
 
 
