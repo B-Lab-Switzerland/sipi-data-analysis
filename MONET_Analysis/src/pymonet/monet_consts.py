@@ -33,6 +33,7 @@ key_indicators_fpath = meta_dir / "key_indicators.csv"
 indicator_table_path = meta_dir / "indicator_table.csv"
 metainfo_table_path = meta_dir / "monet_datafile_summary_table.csv"
 metainfo_table_path_full = meta_dir / "observables_metainformation_table.csv"
+metrics_meta_table_fpath = meta_dir / "metrics_meta_table.csv"
 
 # Log files
 # ---------
@@ -47,7 +48,6 @@ log_file_processed_s2_data = log_dir / "processed_s2_data_log.csv"
 
 # (Stage 2)
 # multiple JSON files stored in processed_dir / "stage_2"
-metric_id2name_fname = "metric_id_to_name_map.csv"
 
 # (Stage 3)
 compact_metrics_filename = "monet2030_metrics.csv" 

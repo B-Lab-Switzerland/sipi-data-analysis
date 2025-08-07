@@ -589,7 +589,7 @@ class Stage2(Processor):
 
         return subobs_df_list, ci95_df_list
 
-    def _create_id2name_map(self, json_dict) -> pd.DataFrame:
+    def _create_id2name_map(self, json_dict: Dict[str, str]) -> pd.DataFrame:
         """
         Create a map from metric_ids to metric names.
 
@@ -628,8 +628,54 @@ class Stage2(Processor):
         # remove duplicate 
         id2name_map = id2name_map.drop_duplicates(subset=["metric_id"], keep="last")
         id2name_map.drop_duplicates(inplace=True)
-        return id2name_map.set_index("metric_id")
+        return id2name_map
 
+    def _create_metrics_metatable(self, json_dict: Dict[str, str]) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        json_dict : Dict
+            Dictionary corresponding to the stage-2 JSON
+            string for each MONET2030 metric.
+            
+        Returns
+        -------
+        metrics_mt : pandas.DataFrame
+        """
+        # Get ID-to-name map for metrics
+        metric_id2name_map = self._create_id2name_map(json_dict)
+
+        # Add dam_id column for subsequent merging with observables meta table
+        dam_id_extractor = lambda idstr: int(idstr.split("_")[0][:-1])
+        metric_id2name_map["dam_id"] = metric_id2name_map["metric_id"].apply(dam_id_extractor)
+
+        # Merge in observables information
+        metrics_mt = metric_id2name_map.merge(self.metatable, on="dam_id", how="inner")
+
+        # Sanity check
+        assert set(metrics_mt["dam_id"].values) == set(self.metatable["dam_id"].values)
+
+        # Rename surviving columns
+        metrics_mt.columns = [colname.replace("_x", "") for colname in metrics_mt.columns]
+
+        # Set metric_id to index
+        metrics_mt = metrics_mt.set_index("metric_id")
+
+        # Reorder columns
+        ordered_cols = ["metric_name",
+                        "metric_description",
+                        "units",
+                        "dam_id",
+                        "indicator_id",
+                        "sdg",
+                        "topic",
+                        "capital - primary",
+                        "capital - secondary",
+                        "is_key"]
+        
+        return metrics_mt[ordered_cols]
+        
     def _transform(self):
         """
         Performs the stage 2 transformation of the
@@ -708,14 +754,15 @@ class Stage2(Processor):
                                          "processed_date": proc_dt.strftime(format="%Y-%m-%d"),
                                          "processed_timestamp": proc_dt.strftime(format="%H:%M:%S")})
     
-
-        metric_id2name_map = self._create_id2name_map(s2_trafo_results)
+        # Create metrics-level meta information table
+        metrics_meta_table = self._create_metrics_metatable(s2_trafo_results)
+        
         # Save id-to-name map
-        metric_id2name_map.to_csv(self.current_stage_fpath / const.metric_id2name_fname)
+        metrics_meta_table.to_csv(const.metrics_meta_table_fpath)
         
         # Make data available
         self.output = s2_trafo_results
-        self.additional_results["metric_id2name_map"] = metric_id2name_map
+        self.additional_results["metrics_metatable"] = metrics_meta_table
     
         # Write log files
         processed_s2_log.write(const.log_file_processed_s2_data, index_key="file_id")
