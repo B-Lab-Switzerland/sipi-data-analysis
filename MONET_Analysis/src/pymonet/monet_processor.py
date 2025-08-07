@@ -782,7 +782,7 @@ class Stage2(Processor):
 
             self.output.append({k: aux.deserialize_value(v) for k, v in loaded_dict.items()})
 
-        self.additional_results["metric_id2name_map"] = pd.read_csv(self.current_stage_fpath / const.metric_id2name_fname).set_index("metric_id")
+        self.additional_results["metrics_metatable"] = pd.read_csv(metrics_meta_table_fpath).set_index("metric_id")
 
         print("-> done!")
 
