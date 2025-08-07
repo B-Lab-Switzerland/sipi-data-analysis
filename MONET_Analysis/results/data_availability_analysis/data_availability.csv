@@ -1,0 +1,184 @@
+,count,metric_name,metric_description,capital - primary
+33188574a_metr,79,Fatalities caused by natural events [Data],"Floods, debris flows, landslides, rockfall, rockslides and avalanches",Human
+33188943a_metr,55,Suicide rate by sex [Women],Deaths by suicide per 100 000 inhabitants,Human
+33188608a_metr,55,Road traffic accidents [Killed ],Number of persons killed or seriously injured in road traffic,Human
+33188943b_metr,55,Suicide rate by sex [Men],Deaths by suicide per 100 000 inhabitants,Human
+33188939a_metr,55,Suicide rate [Data],Deaths by suicide per 100 000 inhabitants,Human
+33188608b_metr,55,Road traffic accidents [Seriously injured],Number of persons killed or seriously injured in road traffic,Human
+33188819a_metr,53,Damaged caused by natural disasters [Million CHF (at constant prices)],"Floods, debris flows, landslides, rockfall and rockslides",Economic
+33188669a_metr,47,Drinking water use [Litres per person and per day],"Consumption of households, small enterprises, industry and commerce, public services and fountains, self-consumption of distributors and losses",Natural
+33188685b_metr,45,Final energy consumption by energy source [Electricity],Shares in percent,Natural
+33188685d_metr,45,Final energy consumption by energy source [Rest¹],Shares in percent,Natural
+33188685c_metr,45,Final energy consumption by energy source [Gas],Shares in percent,Natural
+33707231a_metr,45,Modal split in goods transport [Percentage of tonne-kilometres],Share of rail in total overland goods transport (rail and road),Natural
+33188685a_metr,45,Final energy consumption by energy source [Petroleum products],Shares in percent,Natural
+33188670b_metr,45,Energy dependency [Import surplus of energy carriers and nuclear fuels],Domestic energy production from primary energy carriers and imports (import surplus of energy carriers and nuclear fuels) - Thousand terajoules,Economic
+33188670a_metr,45,Energy dependency [Domestic production],Domestic energy production from primary energy carriers and imports (import surplus of energy carriers and nuclear fuels) - Thousand terajoules,Economic
+33188856a_metr,44,Total municipal waste generation [Million tonnes],Incl. recycling,Natural
+33188851a_metr,44,Rate of separately collected municipal waste [In percent],Percentage of separately collected waste in relation to total amount of municipal waste produced,Natural
+14711940a_metr,42,Nitrogen load exported [Thousand tonnes],Total nitrogen load on the Rhine at Basel,Natural
+33707243a_metr,35,Official Development Assistance [In percent],In proportion to gross national income (GNI),Economic
+33188545a_metr,35,Level of public debt [In percent],"Consolidated debt of the Confederation, cantons, communes and social insurances in relation to gross domestic product",Economic
+33188694a_metr,35,Final energy consumption per capita [Gigajoules per capita],Excluding international air traffic,Human
+33188760b_metr,35,Youth unemployment by sex [Men],Proportion of unemployed persons based on ILO definition in economically active population of 15–24 year-olds (in 2nd quarter) - In percent,Human
+33188575a_metr,35,Total social security expenditure [In percent],As a percentage of gross domestic product,Social
+33188880a_metr,35,Sustainable wood harvest [Data],Annual harvest divided by net annual wood growth,Natural
+33188898a_metr,35,Populations of breeding birds [Index 1990 = 100],Trend in breeding bird populations from the Red List,Natural
+33188698a_metr,35,Renewable energies [In percent],In relation to final energy consumption,Natural
+33188760a_metr,35,Youth unemployment by sex [Women],Proportion of unemployed persons based on ILO definition in economically active population of 15–24 year-olds (in 2nd quarter) - In percent,Human
+33188758a_metr,35,Youth unemployment [In percent],Proportion of unemployed persons based on ILO definition in economically active population of 15–24 year-olds (in 2nd quarter),Human
+33188624d_metr,34,Particulate matter concentrations [Rural],Average annual concentrations of PM10¹  (prior to 1997 calculated using total suspended particles TSP) - Micrograms / cubic meter,Human
+33188624c_metr,34,Particulate matter concentrations [Suburban],Average annual concentrations of PM10¹  (prior to 1997 calculated using total suspended particles TSP) - Micrograms / cubic meter,Human
+33188700a_metr,34,Per capita gross domestic product [Thousand CHF],"In thousands Swiss francs, at current prices",Economic
+33188724a_metr,34,Labour productivity [Index 1991=100],Hourly labour productivity growth at previous year’s prices,Human
+33188624b_metr,34,Particulate matter concentrations [Urban],Average annual concentrations of PM10¹  (prior to 1997 calculated using total suspended particles TSP) - Micrograms / cubic meter,Human
+33188602b_metr,34,Years of potential life lost [Men],"Standardised rate by age for 100 000 population, all causes of death, standard European population - Standardised rate",Human
+33188873a_metr,34,Greenhouse gas emissions [Greenhouse gas emissions],CO2 equivalents without the carbon sink effect from the forest - Millions tonnes,Natural
+33188582a_metr,34,Greenhouse gas emissions from agriculture [Millions t CO2 eq.],"Methane, carbon dioxide and nitrous oxide emissions linked to domestic agricultural production",Natural
+33188624a_metr,34,"Particulate matter concentrations [Urban, traffic]",Average annual concentrations of PM10¹  (prior to 1997 calculated using total suspended particles TSP) - Micrograms / cubic meter,Human
+33188624e_metr,34,Particulate matter concentrations [Prealps/Jura],Average annual concentrations of PM10¹  (prior to 1997 calculated using total suspended particles TSP) - Micrograms / cubic meter,Human
+33188602a_metr,34,Years of potential life lost [Women],"Standardised rate by age for 100 000 population, all causes of death, standard European population - Standardised rate",Human
+33188590a_metr,34,Nitrogen balance from agriculture [Thousand tonnes],Difference between the quantities of nitrogen entering cultivated land and those extracted from it,Natural
+23567403a_metr,32,Invasive alien species [Data],Number of invasive alien species known,Natural
+33188763a_metr,31,Congestion on Swiss motorway network [Hours],Congestion caused by excess traffic,Economic
+33188513a_metr,30,Investment to gross domestic product ratio [In percent],Gross investments in relation to gross domestic product,Economic
+33188729a_metr,30,Women's employment rate [In percent],"Percentage of active women in the permanent resident population of this age group (women aged 15 to 64 ), in full-time equivalents",Human
+33188931a_metr,30,Trust in the Federal Council [Data],Index from 1 (no trust) to 10 (complete trust),Social
+33188518a_metr,29,Environmental taxes [Data],Ratio between income taxes and environmentally related taxes,Natural
+33707221a_metr,27,Modal split of passenger transport [Percentage of passenger-kilometres],Share of public transport in motorised passenger transport by road and rail,Natural
+33707241a_metr,26,Official development assistance for poor countries [Least Developed Countries (LDCs)],Net official development assistance for the least developed countries (LDC) and small island developing states (SIDS) - Million CHF,Economic
+33707241b_metr,26,Official development assistance for poor countries [Small Island Developing States (SIDS)],Net official development assistance for the least developed countries (LDC) and small island developing states (SIDS) - Million CHF,Economic
+33188804a_metr,25,Duty-free imports from developing countries [Middle-income countries],Share of duty-free imports in the total value of all imported goods by countries' income categories¹ - In percent,Economic
+33188804b_metr,25,Duty-free imports from developing countries [Least developed countries],Share of duty-free imports in the total value of all imported goods by countries' income categories¹ - In percent,Economic
+33188881a_metr,25,Nationally designated protected areas [In percent],Percentage of the national territory protected at federal level for conserving biological diversity or particular species,Natural
+33188593b_metr,25,Organic farming by surface area categories [Perennial crops],Percentage of the organically farmed area in the utilised agricultural area of the same surface area category - In percent,Natural
+33188696a_metr,25,Electricity production from renewable energies [GWh],Electricity production from hydropower plants,Natural
+33188686a_metr,25,Electricity production from renewable energies [GWh],Electricity production from new renewable energies,Natural
+33188593a_metr,25,Organic farming by surface area categories [Grassland],Percentage of the organically farmed area in the utilised agricultural area of the same surface area category - In percent,Natural
+33188593c_metr,25,Organic farming by surface area categories [Open crop land],Percentage of the organically farmed area in the utilised agricultural area of the same surface area category - In percent,Natural
+33188583a_metr,25,Organic farming [In percent],Percentage of the organically farmed area in the utilised agricultural area,Natural
+33188818a_metr,25,Remittances by migrants [CHF millions],Total of remittances from migrant workers in Switzerland to their countries of origin,Economic
+33188823a_metr,24,Material footprint per person [Tonnes per person],Raw material consumption (RMC) per person¹,Natural
+33188726a_metr,24,Material footprint [Million tons],Raw material consumption (RMC),Human
+29946667a_metr,24,Employment in environmental sector [In percent],Share in total employment,Economic
+33188757a_metr,24,Material intensity [Index 2000 = 100],Raw material consumption (RMC) to Gross Domestic Product ratio,Natural
+28325038a_metr,23,Intensity of the greenhouse gas footprint [Index 2000 = 100],Greenhouse gas footprint to final domestic demand of goods and services ratio¹,Natural
+28325089a_metr,23,Greenhouse gas footprint per person [t CO2 eq],Greenhouse gas emissions caused by the consumption of goods and services in Switzerland,Natural
+33188793a_metr,23,Distribution of equivalised primary income (S80/S20) [Data],People living in working households,Economic
+33188762a_metr,23,Tourism employment [Data],In thousands full-time equivalent,Human
+33188747a_metr,23,"Tourism gross value added [CHF millions, at current prices]",,Economic
+33188870a_metr,23,Petroleum tax relief [In percent],Percentage of reimbursement in net petroleum tax revenues,Economic
+28325075a_metr,23,Greenhouse gas footprint [Millions t CO2 eq],Greenhouse gas emissions caused by the consumption of goods and services in Switzerland,Natural
+28325090a_metr,23,Greenhouse gas footprint of food per person [t CO2 eq],Greenhouse gas emissions from food consumption in Switzerland,Natural
+33188784a_metr,23,Distribution of equivalised disposable income (S80/S20) [Data],People living in working households,Economic
+33188732b_metr,22,Accidents at work [Secondary sector],Recognised cases per 1000 full-time employees,Human
+33188732a_metr,22,Accidents at work [Primary sector],Recognised cases per 1000 full-time employees,Human
+33188732c_metr,22,Accidents at work [Tertiary sector],Recognised cases per 1000 full-time employees,Human
+33188899a_metr,20,Biocoenosis diversity in meadows and pastures [Plants],Index¹ of 0 (uniform biocoenosis) to 100 (diverse biocoenosis) based on all paired comparisons of the sampling areas,Natural
+33188899b_metr,20,Biocoenosis diversity in meadows and pastures [Mosses],Index¹ of 0 (uniform biocoenosis) to 100 (diverse biocoenosis) based on all paired comparisons of the sampling areas,Natural
+33188899c_metr,19,Biocoenosis diversity in meadows and pastures [Molluscs],Index¹ of 0 (uniform biocoenosis) to 100 (diverse biocoenosis) based on all paired comparisons of the sampling areas,Natural
+33188938a_metr,19,Direct investments in developing countries [Middle-income developing countries],"Switzerland's capital exports, by countries income categories¹ - CHF millions",Economic
+33188938b_metr,19,Direct investments in developing countries [Least developed countries],"Switzerland's capital exports, by countries income categories¹ - CHF millions",Economic
+33188546a_metr,18,Disparities in the financial capacities of the cantons [Data],Standard deviation of indices of canton resources (before equalisation),Economic
+33188571a_metr,16,Poverty rate by sex [Women],Share of people affected by income poverty in the permanent resident population living in private households - In percent,Social
+33188551a_metr,16,Poverty of employed persons [In percent],Poverty rates among employed persons,Human
+33188617a_metr,16,Foregoing necessary medical care for financial reasons [In percent],Percentage of the population at risk of poverty aged 16 and over,Human
+33188530a_metr,16,Poverty rate [In percent],Share of people affected by income poverty in the permanent resident population living in private households,Social
+33188571b_metr,16,Poverty rate by sex [Men],Share of people affected by income poverty in the permanent resident population living in private households - In percent,Social
+33707214b_metr,15,Participation in elections and federal popular votes [Popular votes],In percent,Social
+33188644a_metr,15,Domestic violence [Data],Number of victims of serious physical domestic violence recorded by the police,Social
+33188653a_metr,15,Domestic violence by sex [Women],Number of victims of serious physical domestic violence recorded by the police,Social
+33188653b_metr,15,Domestic violence by sex [Men],Number of victims of serious physical domestic violence recorded by the police,Social
+33188910a_metr,15,Violent offences  [Data],Number of victims for completed serious violent offences¹ known to the police,Social
+33188914b_metr,15,Violent offences by sex [Men],Number of victims for completed serious violent offences¹ known to the police,Social
+33188945a_metr,15,Wage gap between women and men [In percent],"Wage gap¹ between women and men as a percentage of men's monthly gross wage, private sector",Social
+33188914a_metr,15,Violent offences by sex [Women],Number of victims for completed serious violent offences¹ known to the police,Social
+33188661a_metr,15,Nitrate in groundwater [In percent],Percentage of monitoring sites with exceedances of nitrate level requirements (25 mg/l),Natural
+29946686b_metr,15,Proportion of women in National Council and in cantonal parliaments [National Council],Proportion of women in total of elected members - In percent,Social
+33707214a_metr,15,Participation in elections and federal popular votes [Elections],In percent,Social
+29946646a_metr,15,Participation of disabled persons in the labour market [In percent],Percentage of employed persons in the severely disabled resident population aged 16 to 64 living in a private household,Human
+29946686a_metr,14,Proportion of women in National Council and in cantonal parliaments [Cantonal parliaments],Proportion of women in total of elected members - In percent,Social
+33188637b_metr,13,Participation in further education by sex [Men],Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities - In percent,Human
+33188640a_metr,13,Participation in further education by nationality [Swiss nationals],Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities - In percent,Human
+33188909a_metr,13,Biodiversity related expenditure [CHF millions],Direct federal biodiversity related expenditure,Natural
+33188850a_metr,13,Hazardous chemicals [Dangerous substances],Number of substances listed in the Chemicals Ordinance (cumulative entries),Natural
+33188850b_metr,13,Hazardous chemicals [Substances of very high concern],Number of substances listed in the Chemicals Ordinance (cumulative entries),Natural
+33188658a_metr,13,Professional position by sex [Women],Percentage of employees working in management or as director in total employees - In percent,Social
+33188637a_metr,13,Participation in further education by sex [Women],Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities - In percent,Human
+33188633a_metr,13,Participation in continuing education [In percent],Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities,Human
+33188640b_metr,13,Participation in further education by nationality [Foreign nationals],Share of the permanent resident population aged 25 to 74 participating in non-formal continuing education activities - In percent,Human
+33188658b_metr,13,Professional position by sex [Men],Percentage of employees working in management or as director in total employees - In percent,Social
+33188550a_metr,13,Language use: multilingualism [In percent],Proportion of the permanent resident population aged 15 or over that regularly uses at least two languages¹,Social
+33188969a_metr,12,NEET rate by sex [Men],Percentage of not employed young people aged 15 to 29 who are not in education or training - In percent,Human
+33188969b_metr,12,NEET rate by sex [Women],Percentage of not employed young people aged 15 to 29 who are not in education or training - In percent,Human
+33188967a_metr,12,NEET: Young people neither in employment nor in training [In percent],Percentage of not employed young people aged 15 to 29 who are not in education or training,Human
+33707230b_metr,12,Unemployment rate based on ILO definition by migration status [Without a migration background],Share of unemployed people in the labor force aged 15-74 - In percent,Human
+33707230a_metr,12,Unemployment rate based on ILO definition by migration status [with a migration background],Share of unemployed people in the labor force aged 15-74 - In percent,Human
+33188723b_metr,12,Jobs in innovative economic activities by sex [Men],Share of jobs in innovative economic activities in total of secondary and tertiary sector jobs in full-time equivalents - In percent,Human
+33188720a_metr,12,Jobs in innovative economic activities [In percent],Share of jobs in innovative economic activities in total of secondary and tertiary sector jobs in full-time equivalents,Human
+33188723a_metr,12,Jobs in innovative economic activities by sex [Women],Share of jobs in innovative economic activities in total of secondary and tertiary sector jobs in full-time equivalents - In percent,Human
+33188932a_metr,12,Corruption perceptions index [Data],Switzerland’s ranking in the Global Corruption Perception Index,Social
+33188795a_metr,11,Poverty rate by migration status and sex [Population without a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+33188795b_metr,11,Poverty rate by migration status and sex [Population with a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+33188627b_metr,11,Teaching staff at higher education institutions [Lecturers with management responsibility (UAS/UTE)],"Professors and lecturers with management responsibility, share of women - In percent",Human
+33188627a_metr,11,Teaching staff at higher education institutions [Professors (UNI)],"Professors and lecturers with management responsibility, share of women - In percent",Human
+33188792a_metr,11,Poverty rate by migration status [M: Population without a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+33188792d_metr,11,Poverty rate by migration status [W: Population with a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+33188792b_metr,11,Poverty rate by migration status [W: Population without a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+33188792c_metr,11,Poverty rate by migration status [M: Population with a migration background],Poverty rate of the permanent resident population aged 16 and older - In percent,Human
+30046148a_metr,9,Reading skills of 15-year-olds [In percent],Share of 15-year-olds reaching at least reading skills level 2 (scale <1 to 6),Human
+33188532a_metr,9,Life satisfaction [High degree of satisfaction],Proportion of the population aged 16 and over with a high or very high degree of satisfaction with their current life - In percent,Human
+33188532b_metr,9,Life satisfaction [Very high degree of satisfaction],Proportion of the population aged 16 and over with a high or very high degree of satisfaction with their current life - In percent,Human
+28325222a_metr,9,Number of researchers [Data],In full-time equivalents per Thousand employed persons,Economic
+19804061e_metr,8,"Time spent on professional activity and on domestic work and childcare [Women, domestic work and childcare]",Permanent resident population between 15 and 64 years - Hours per week,Social
+19804061c_metr,8,"Time spent on professional activity and on domestic work and childcare [Men, domestic work and childcare]",Permanent resident population between 15 and 64 years - Hours per week,Social
+19804061b_metr,8,"Time spent on professional activity and on domestic work and childcare [Men, paid work]",Permanent resident population between 15 and 64 years - Hours per week,Social
+19804061a_metr,8,Time spent on professional activity and on domestic work and childcare [total],Permanent resident population between 15 and 64 years - Hours per week,Social
+33188767a_metr,8,Expenditure on research and development [In percent],In relation to gross domestic product,Economic
+33188596a_metr,8,Plant genetic resources for food and agriculture [Data],Number of plant genetic resources recorded in the National Gene Bank,Natural
+19804061d_metr,8,"Time spent on professional activity and on domestic work and childcare [Women, paid work]",Permanent resident population between 15 and 64 years - Hours per week,Social
+20225538a_metr,7,Voluntary work by sex [Women],Share of the permanent resident population aged 15 and over that carries out voluntary work - In percent,Social
+20225538b_metr,7,Voluntary work by sex [Men],Share of the permanent resident population aged 15 and over that carries out voluntary work - In percent,Social
+28325322a_metr,7,Smoking rate [In percent],Percentage of the population aged 15 and over living in a private household that state that say they smoke,Human
+28325348a_metr,7,Overweight by sex [Women],Share of the population aged 15 and over who are overweight (BMI of 25 or more) - In percent,Human
+19804335a_metr,7,Voluntary work [In percent],Share of the permanent resident population aged 15 and over that carries out voluntary work,Social
+28325338b_metr,7,Smoking rate by sex [Men],Percentage of the population aged 15 and over living in a private household that state that say they smoke - In percent,Human
+28325348b_metr,7,Overweight by sex [Men],Share of the population aged 15 and over who are overweight (BMI of 25 or more) - In percent,Human
+28325345a_metr,7,Overweight [In percent],Share of population aged 15 and over who are overweight (BMI of 25 or more),Human
+28325338a_metr,7,Smoking rate by sex [Women],Percentage of the population aged 15 and over living in a private household that state that say they smoke - In percent,Human
+28325292a_metr,6,Measles immunisation coverage [In percent],Percentage of 2-year-old children inoculated with two doses of measles vaccine,Human
+28325324a_metr,6,Heavy alcohol consumption [In percent],Percentage of the population aged 15 and over living in a private household with chronic heavy alcohol consumption¹,Human
+28325325a_metr,6,Heavy alcohol consumption by sex [Women],Percentage of the population aged 15 and over living in a private household with chronic heavy alcohol consumption¹ - In percent,Human
+28325325b_metr,6,Heavy alcohol consumption by sex [Men],Percentage of the population aged 15 and over living in a private household with chronic heavy alcohol consumption¹ - In percent,Human
+33188963d_metr,6,Housing costs [4th],"Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",Social
+33188963e_metr,6,Housing costs [5th],"Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",Social
+33188963a_metr,6,Housing costs [1st],"Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",Social
+33188963b_metr,6,Housing costs [2nd],"Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",Social
+33188963c_metr,6,Housing costs [3rd],"Proportion of housing costs (incl. utilities) in gross household income, by income category (quintiles) - In percent",Social
+30325545a_metr,4,Traffic noise pollution [In percent],Percentage of the population that feels disturbed at home during the day by traffic noise,Human
+28325289a_metr,4,Victims of discrimination [In percent],Percentage of interviewed persons who had been victims of discrimination (self-assessment),Social
+28325291a_metr,4,Victims of discrimination by sex [Women],Percentage of interviewed persons who had been victims of discrimination (self-assessment) - In percent,Social
+30325542b_metr,4,Assessment of dangers associated with climate change by sex [Men],Share of the population that considers that global warming due to climate change is very dangerous or rather dangerous - In percent,Natural
+28325291b_metr,4,Victims of discrimination by sex [Men],Percentage of interviewed persons who had been victims of discrimination (self-assessment) - In percent,Social
+30325544b_metr,4,Environmental behaviour in everyday life [Consumption of food from organic production],Share of the population that claims to always or often adopt environmentally friendly behaviour - In percent,Natural
+29946665a_metr,4,Digital skills [In percent],Share of total population aged 15 to 88 years whose digital skills exceed basic skills,Human
+30325542a_metr,4,Assessment of dangers associated with climate change by sex [Women],Share of the population that considers that global warming due to climate change is very dangerous or rather dangerous - In percent,Natural
+30325544a_metr,4,Environmental behaviour in everyday life [Consideration of energy consumption when buying small electrical devices],Share of the population that claims to always or often adopt environmentally friendly behaviour - In percent,Natural
+33188523a_metr,4,Arable land [Thousand hectares],,Natural
+30325547a_metr,4,Assessment of dangers associated with climate change [In percent],Share of the population that considers that global warming due to climate change is very dangerous or rather dangerous,Natural
+33188968a_metr,4,Average distance to nearest public transport stop [Meters],Distance calculated on the basis of the road network,Economic
+33188895a_metr,4,Summer pastures [Km²],Total summer pastures area,Natural
+33188879a_metr,4,Soil sealing [In percent],Soil sealing as a percentage of total land area,Natural
+33188822a_metr,4,Recreational areas in urban spaces [In percent],Share of recreational areas¹ in settlement areas of urban spaces,Natural
+33707244a_metr,4,Independent use of public transport by people with disabilities [In percent],Percentage of people with severe disabilities aged 15 to 64¹ who can use public transport unaided and without difficulty,Human
+28325320a_metr,3,Fruit and vegetable consumption by sex [Women],Percentage of the population that eats at least 5 portions of fruit and vegetables per day (on at least 5 days per week) - In percent,Human
+28325312a_metr,3,Fruit and vegetable consumption [In percent],Percentage of the population that eats at least 5 portions of fruit and vegetables per day (on at least 5 days per week),Human
+33188508b_metr,3,1st certification rate at upper secondary level [Foreigners born abroad],Proportion of young people who obtained their first certification before the age of 25 - in % of the reference population of the same age,Human
+28325320b_metr,3,Fruit and vegetable consumption by sex [Men],Percentage of the population that eats at least 5 portions of fruit and vegetables per day (on at least 5 days per week) - In percent,Human
+33188508a_metr,3,1st certification rate at upper secondary level [Swiss born in Switzerland],Proportion of young people who obtained their first certification before the age of 25 - in % of the reference population of the same age,Human
+28325349a_metr,3,Building zones [Inhabitants and jobs (FTE) per hectare],"Density of built residential zones, mixed zones and core zones",Social
+19804339a_metr,2,Participation in cultural activities [Visiting museums and exhibitions],Share of the population aged 15 and over who participated in following activities - In percent,Social
+19804339b_metr,2,Participation in cultural activities [Going to festivals (all types)],Share of the population aged 15 and over who participated in following activities - In percent,Social
+28325350a_metr,2,Urban sprawl [Urban penetration units (UPU) per m² of landscape],Weighted urban sprawl,Natural
+05626316a_metr,1,Structure of watercourses [In percent],Share of the total length of watercourses in a poor ecomorphological condition¹,Natural
+33188873b_metr,1,Greenhouse gas emissions [Target according to Paris Agreement for 2030*],CO2 equivalents without the carbon sink effect from the forest - Millions tonnes,Natural
