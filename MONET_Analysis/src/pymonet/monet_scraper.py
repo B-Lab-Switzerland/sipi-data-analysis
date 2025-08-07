@@ -16,6 +16,96 @@ from pymonet import monet_elt as elt
 from pymonet import monet_aux as aux
 from pymonet import monet_consts as const
 
+class KeyIndicatorLoader(object):
+    """
+    Class handling loading MONET2030 indicator data
+    into memory.
+
+    Parameters
+    ----------
+    indicator_table_url : str
+        URL pointing to the indicator table
+
+    indicator_table_path : str
+        Path where the indicator table is stored
+        or will be written to.
+    """
+    def __init__(self, key_indicator_url: str, key_indicator_table_path: str):
+        self.url = key_indicator_url
+        self.fpath = key_indicator_table_path
+        self.table = None
+        
+    #async def _scrape_table(self):
+    def _scrape_table(self):
+        """
+        Scrapes the key indicator table from the WWW.
+    
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        raise NotImplementedError("Scraping the key indicator list from the WWW is currently not yet supported.")
+
+    def _read_table(self) -> pd.DataFrame:
+        """
+        Reads MONET2030 key indicator tabel from disk, assuming 
+        the file exists at the location indicated by self.fpath.
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+    
+        Raises
+        ------
+        FileNotFoundError
+            If the file cannot be found at self.fpath
+        """
+        if not self.fpath.exists():
+            raise FileNotFoundError(errno.ENOENT, 
+                                    os.strerror(errno.ENOENT),
+                                    self.fpath)
+            
+        print("Reading from disk...")
+        self.table = pd.read_csv(self.fpath).set_index("id")
+        if "index" in self.table.columns:
+            self.table.drop("index", axis=1, inplace=True)
+        print("-> done!")
+    
+    def get_table(self, force_download=False):
+        """
+        Reads MONET2030 key indicator table into memory.
+    
+        Checks if the table is already written to disk in which case the
+        data is loaded into memory from disk by calling the _read_table
+        function. Otherwise the function _scrape_table is called in which
+        case the data is scraped from the internet.
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        # Read data from disk if it already exists
+        if (not force_download) & self.fpath.exists():
+            self._read_table()
+    
+        # Otherwise, scrape data from WWW
+        else:
+            # Once fully implemented, use "await self._scrape_table()"
+            # instead of the following code line
+            self._scrape_table()
+
 class IndicatorTableLoader(object):
     """
     Class handling loading MONET2030 indicator data
@@ -30,9 +120,16 @@ class IndicatorTableLoader(object):
         Path where the indicator table is stored
         or will be written to.
     """
-    def __init__(self, indicator_table_url: str, indicator_table_path: str):
+    def __init__(self, 
+                 capmap: pd.DataFrame,
+                 key_indicators_df: pd.DataFrame,
+                 indicator_table_url: str, 
+                 indicator_table_path: str
+                ):
         self.url = indicator_table_url
         self.fpath = indicator_table_path
+        self.key_indicator_ids = [kid for kid in key_indicators_df.index]
+        self.capitals_map = capmap
         self.table = None
         
     async def _scrape_table(self):
@@ -56,6 +153,14 @@ class IndicatorTableLoader(object):
 
         self.table = elt_mil.df
 
+        # Add "is_key" column
+        self.table["is_key"] = False
+        self.table.loc[self.table.index.isin(self.key_indicator_ids), "is_key"] = True
+
+        # Join in capitals information (here we join on the index
+        # as per the default of the join method).
+        self.table = self.table.join(self.capitals_map, how="outer")
+        
         # Write table to file
         Path("/".join(self.fpath.as_posix().split("/")[:-1])).mkdir(parents=True, exist_ok=True)
         self.table.to_csv(self.fpath)
@@ -178,6 +283,9 @@ class MetaInfoTableLoader(object):
             elt_mii.df["sdg"] = indicator["sdg"]
             elt_mii.df["topic"] = indicator["topic"]
             elt_mii.df["indicator"] = indicator["indicator"]
+            elt_mii.df["is_key"] = indicator["is_key"]
+            elt_mii.df["capital - primary"] = indicator["capital - primary"]
+            elt_mii.df["capital - secondary"] = indicator["capital - secondary"]
             df_list.append(elt_mii.df)
         print("-> done!")
     
@@ -186,7 +294,19 @@ class MetaInfoTableLoader(object):
         self.table = pd.concat(df_list, ignore_index=True)
 
         # Resort columns
-        self.table = self.table[["dam_id", "indicator_id", "sdg", "topic", "indicator", "observable", "description", "units", "data_file_url"]]
+        self.table = self.table[["dam_id",
+                                 "indicator_id",
+                                 "sdg",
+                                 "topic",
+                                 "indicator",
+                                 "observable",
+                                 "description",
+                                 "units",
+                                 "is_key",
+                                 "capital - primary",
+                                 "capital - secondary",
+                                 "data_file_url"
+                                ]]
         self.table.set_index("dam_id", inplace=True)
         
         # Write table to file
@@ -490,12 +610,12 @@ class MonetLoader(object):
     load() -> List[Tuple[str, Dict]]
     """
     def __init__(self):
+        self.key_indicators_table = None
         self.indicators_metatable = None
         self.observables_metatable = None
         self.metatable = None
-        self.key_indicators_df = self._load_key_indicators()
         self.capitals_map = self._load_capmap()
-
+        
         # ================================================ #
         # **Important remark:**                            #
         # The capitals mapping file (corresponding to      #
@@ -507,7 +627,7 @@ class MonetLoader(object):
         
     def _load_capmap(self) -> pd.DataFrame:
         """
-        Load capitals mappingt into memory.
+        Load capitals mapping into memory.
 
         The capitals map maps the different
         indicators to the corresponding capital
@@ -520,21 +640,28 @@ class MonetLoader(object):
             and the corresponding primary and
             secondary capitals they map to.
         """
-        capmap = pd.read_csv(const.capmap_path) 
+        capmap = pd.read_csv(const.capmap_path).set_index("id") 
         return capmap
 
-    def _load_key_indicators(self) -> pd.DataFrame:
+    def _scrape_keyindicators(self) -> pd.DataFrame:
         """
-        Loads table of official MONET2039 key indicators
-        as defined on const.key_indicator_url
+        List of official MONET2030 key indicators.
+
+        The key indicators are an officially published
+        list comprising a subset of MONET2030 indicators
+        that are considered particularly important.
 
         Returns
         -------
-        key_indicators_df : pandas.DataFrame
-            List of MONET2030 key indicators
+        keyinds : pandas.DataFrame
+            A dataframe listing the key indicators.
         """
-
-        return pd.read_csv(const.key_indicators)
+        key = KeyIndicatorLoader(const.url_monet2030_key_indicators,
+                                 const.key_indicators_fpath
+                                ) 
+        key.get_table()
+        key_indicators_table = key.table
+        return key_indicators_table
         
     async def _scrape_indicators_metatable(self) -> pd.DataFrame:
         """
@@ -551,8 +678,10 @@ class MonetLoader(object):
             and their meta information (e.g. the URLs
             pointing to the indicator-specific subpages)
         """
-        itl = IndicatorTableLoader(const.url_all_monet2030_indicators, 
-                                   const.indicator_table_path
+        itl = IndicatorTableLoader(self.capitals_map,
+                                   self.key_indicators_table,
+                                   const.url_all_monet2030_indicators, 
+                                   const.indicator_table_path,
                                   )
         await itl.get_table()
         indicators_metatable = itl.table
@@ -654,33 +783,18 @@ class MonetLoader(object):
             data table) as key-value pairs.
         """
         # Step 1
-        print("Getting indicator information...")
-        indicator_mt = await self._scrape_indicators_metatable()
-        self.indicators_metatable = indicator_mt.merge(self.capitals_map, on="id", how="outer")
+        print("Getting key indicators table...")
+        self.key_indicators_table = self._scrape_keyindicators()
         
         # Step 2
-        print("Getting observable information...")
-        observables_mt = await self._scrape_observables_metatable()
-        observables_mt = observables_mt.merge(self.capitals_map, 
-                                      left_on="indicator_id", right_on="id",
-                                      how="outer")
-        observables_mt = observables_mt[["dam_id",
-                                 "indicator_id",
-                                 "sdg",
-                                 "topic",
-                                 "indicator",
-                                 "observable",
-                                 "description",
-                                 "capital - primary",
-                                 "units",
-                                 "data_file_url"
-                                ]]
-        self.observables_metatable = observables_mt
-
-        # -- Combining meta_tables
-        self._create_full_meta_table()
+        print("Getting indicator information...")
+        self.indicators_metatable = await self._scrape_indicators_metatable()
         
         # Step 3
+        print("Getting observable information...")
+        self.observables_metatable = await self._scrape_observables_metatable()
+        
+        # Step 4
         print("Getting data files..")
         raw_data = self._scrape_datafiles()
         
@@ -691,8 +805,8 @@ def main():
     """
     Main function to execute the web scraper.
     """
-    s = Scraper()
-    s.scrape()
+    s = MonetLoader()
+    s.load()
 
 if __name__ == "__main__":
     scrape_data()
