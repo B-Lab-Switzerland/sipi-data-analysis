@@ -1964,7 +1964,8 @@ class TransformationPipeline(object):
 
     def create_inspection_plots(self,
                                 create: str|List[str] = 'all',
-                                write: bool=True
+                                write: bool=True,
+                                sort_by_capital: bool=True
                                ) -> List[Tuple[Figure,Axes]]:
         """
         Create plots for visual inspection of data
@@ -1991,6 +1992,10 @@ class TransformationPipeline(object):
         write : bool [default: True]
             If True, saves plot(s) to disk
 
+        sort_by_capital: bool [default: True]
+            If True, sorts the panels in the resulting
+            plot by capital
+
         Returns
         -------
         figsaxes : List[Tuple[Figure,Axes]]
@@ -2015,23 +2020,42 @@ class TransformationPipeline(object):
              'residuals',
              'zscores']
         """
-        monet_metric_metatable = self.stages[1].additional_results["metrics_metatable"]
+        monet_metric_metatable = self.stages[1].additional_results["metrics_metatable"].reset_index()
+        monet_metric_metatable = monet_metric_metatable[["metric_id", "metric_name", "capital - primary"]]\
+                                    .drop_duplicates()\
+                                    .set_index("metric_id")
+        
+        if sort_by_capital:
+            monet_metric_ids_sorted_by_cap = monet_metric_metatable.sort_values(by="capital - primary")
+        else:
+            monet_metric_ids_sorted_by_cap = monet_metric_metatable
+
+        sorted_indices = [mid for mid in monet_metric_ids_sorted_by_cap.index if mid.endswith("_metr")]
         
         monet_data = self.stages[2].output.copy()
+        monet_data = monet_data[sorted_indices]
         monet_data.index = pd.to_datetime(monet_data.index, format="%Y")
         
         monet_clean = self.stages[3].output.copy()
+        monet_clean = monet_clean[[idx for idx in sorted_indices if idx in monet_clean.columns]]
         monet_clean.index = pd.to_datetime(monet_clean.index, format="%Y")
         
         monet_interpolated = self.stages[4].output.copy()
+        monet_interpolated = monet_interpolated[[idx for idx in sorted_indices if idx in monet_interpolated.columns]]
         monet_interpolated.index = tsa.fractional_years_to_datetime(monet_interpolated.index)
         
         monet_envelopes = self.stages[4].additional_results["uncertainty_envelopes"].copy()
+        monet_envelopes = monet_envelopes[[idx for idx in sorted_indices if idx in monet_envelopes.columns]]
         monet_envelopes.index = tsa.fractional_years_to_datetime(monet_envelopes.index)
         
         monet_residuals = self.stages[5].output.copy()
+        monet_residuals = monet_residuals[[idx for idx in sorted_indices if idx in monet_residuals.columns]]
+        
         monet_trends = self.stages[5].additional_results["trends"].copy()
+        monet_trends = monet_trends[[idx for idx in sorted_indices if idx in monet_trends.columns]]
+        
         monet_zscores = self.stages[6].output.copy()
+        monet_zscores = monet_zscores[[idx for idx in sorted_indices if idx in monet_zscores.columns]]
         
         max_list = ['clean vs raw', 
                     'interpolated vs clean', 
@@ -2053,7 +2077,7 @@ class TransformationPipeline(object):
         if 'clean vs raw' in create:
             plotpath = self.stages[3].current_stage_fpath / const.clean_vs_raw_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_clean, 
-                                     title = "Clean vs raw data (clean = red line, raw = black dots)", 
+                                     title = "Clean vs raw data (clean = line, raw = diamonds)", 
                                      meta_info = monet_metric_metatable,
                                      scatter_df = monet_data,
                                      fpath = plotpath
@@ -2063,8 +2087,7 @@ class TransformationPipeline(object):
         if 'interpolated vs clean' in create:
             plotpath = self.stages[4].current_stage_fpath / const.interpolated_vs_clean_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_interpolated,
-                                     monet_metric_metatable,
-                                     title = "GP-interpolated vs clean data (interpolated = red line, clean = black dots)",
+                                     title = "GP-interpolated vs clean data (interpolated = line, clean = diamonds)",
                                      meta_info = monet_metric_metatable,
                                      scatter_df = monet_clean,
                                      error_df = monet_envelopes,
@@ -2075,8 +2098,7 @@ class TransformationPipeline(object):
         if 'trends vs interpolated' in create:
             plotpath = self.stages[5].current_stage_fpath / const.trends_vs_interpolated_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_trends,
-                                     monet_metric_metatable,
-                                     title = "Trend lines (red) through GP-interpolated data (black dots)",
+                                     title = "Trend lines through GP-interpolated data (diamonds)",
                                      meta_info = monet_metric_metatable,
                                      scatter_df = monet_interpolated,
                                      fpath = plotpath
@@ -2086,7 +2108,6 @@ class TransformationPipeline(object):
         if 'residuals' in create:
             plotpath = self.stages[5].current_stage_fpath / const.residuals_plot_fpath if write else None
             fig, ax = plot.plot_data(monet_residuals, 
-                                     monet_metric_metatable,
                                      title = "Residuals after detrending GP-interpolated data",
                                      meta_info = monet_metric_metatable,
                                      fpath = plotpath

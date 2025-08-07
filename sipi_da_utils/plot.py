@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
 
+capital_to_color = {'Social': tuple(np.array([177., 41., 48.])/256),
+                    'Human': tuple(np.array([40., 96., 144.])/256),
+                    'Natural': tuple(np.array([48., 131., 44.])/256),
+                    'Economic': tuple(np.array([216., 109., 34.])/256)}
 
 def raw_data_availability_barchart(df: pd.DataFrame, 
                                    x_label: str,
@@ -120,12 +124,6 @@ def visualize_data_availability_colored(df: pd.DataFrame,
     ax : Axes
         Axes containing plot
     """
-    # Map capital categories to colors
-    capital_to_color = {'Social': tuple(np.array([177., 41., 48.])/256),
-                        'Human': tuple(np.array([40., 96., 144.])/256),
-                        'Natural': tuple(np.array([48., 131., 44.])/256),
-                        'Economic': tuple(np.array([216., 109., 34.])/256)}
-
     # Function to apply to each row
     def replace_with_color(row: pd.Series) -> pd.Series:
         """
@@ -192,11 +190,29 @@ def visualize_data_availability_colored(df: pd.DataFrame,
     # Save or show
     return ax
 
+def format_title(in_title: str) -> str:
+    """
+    """
+    words = in_title.split()
+    out_title = ""
+    line_length = 0
+    for w in words:
+        if line_length>30:
+            out_title += ("\n" + w + " ")
+            line_length = len(w)+1
+        else:
+            out_title += (w + " ")
+            line_length += len(w)+1
+
+    return out_title
+
 def plot_data(line_df: pd.DataFrame, 
               title: str,
+              meta_info: pd.DataFrame|None = None,
               scatter_df: pd.DataFrame|None = None, 
               error_df: pd.DataFrame|None = None,
-              fpath: Path|None = None):
+              fpath: Path|None = None
+             ) -> Tuple[Figure, np.ndarray[Axes]]:
     """
     Creates a multi-panel plot showing one time
     series per panel.
@@ -215,6 +231,10 @@ def plot_data(line_df: pd.DataFrame,
 
     Optional Parameters
     -------------------
+    meta_info: pandas.DataFrame [default: None]
+        Dataframe containing additional info
+        about the data being plotted.
+        
     scatter_df : pandas.DataFrame [default: None]
         Data to be plotted as scatter points
         (for reference)
@@ -233,24 +253,30 @@ def plot_data(line_df: pd.DataFrame,
         If error_df is not None and indices of line_df
         and error_df are not aligned.
     """
-    fig, axs = plt.subplots(23,5, figsize=(25,60))
+    fig, axs = plt.subplots(23,5, 
+                            figsize=(25,60),
+                            gridspec_kw = {"hspace": 0.8})
     
-    i = 0
-    for metric in line_df.columns:
+    for i, metric in enumerate(line_df.columns):
         ax = axs[i//5,i%5]
+
+        # Get color
+        panel_title = format_title(meta_info["metric_name"].loc[metric])
+        capital = meta_info["capital - primary"].loc[metric]
+        color = capital_to_color[capital]
 
         # Plot lines
         line_series = line_df[metric].dropna()
         line_x = line_series.keys()
         line_y = line_series.values
-        ax.plot(line_x, line_y, c="r", label="GP")
+        ax.plot(line_x, line_y, c=color)
         
         if not(scatter_df is None):
             # Plot scatter point data for reference
             scatter_series = scatter_df[metric].dropna()
             scatter_x = scatter_series.keys()
             scatter_y = scatter_series.values
-            ax.scatter(scatter_x, scatter_y, c="k", marker='o', label="measurements")
+            ax.scatter(scatter_x, scatter_y, color=color, marker='d')
 
         if not(error_df is None):
             # Add uncertainty envelopes
@@ -270,13 +296,29 @@ def plot_data(line_df: pd.DataFrame,
                 label="95% confidence interval")
         
         ax.grid(True)
-        ax.set_title(metric)
-        i += 1
+        ax.set_title(panel_title)
 
-    fig.suptitle(title, fontsize=24, y=1.006)
+        # Add a legend only if the current panel
+        # is in the bottom line in the middle
+        if i == len(line_df.columns)-3:
+            xlimits = ax.get_xlim()
+            ylimits = ax.get_ylim()
+
+            # Dummy plots
+            ax.plot([1,2],[0,0], c=capital_to_color["Economic"], label="Economic")
+            ax.plot([1,2],[0,0], c=capital_to_color["Human"], label="Human")
+            ax.plot([1,2],[0,0], c=capital_to_color["Natural"], label="Natural")
+            ax.plot([1,2],[0,0], c=capital_to_color["Social"], label="Social")
+            
+            ax.set_xlim(xlimits)
+            ax.set_ylim(ylimits)
+
+            ax.legend(loc="lower center", ncol=4, bbox_to_anchor=[0.25, -0.75], fontsize=18)
+    
+    fig.suptitle(title, fontsize=24, y=0.9)
     plt.tight_layout()
     if not(fpath is None):
         fig.savefig(fpath, bbox_inches="tight")
     plt.show()
 
-    return fig, ax
+    return fig, axs
