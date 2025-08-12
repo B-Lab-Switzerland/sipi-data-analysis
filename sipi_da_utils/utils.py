@@ -294,7 +294,7 @@ class CorrelationAnalysis(object):
 
         Optional Parameters
         -------------------
-        verbos : int [default: 0]
+        verbose : int [default: 0]
             Verbosity level for standard out.
 
         fpath_corr : pathlib.Path [default: None]

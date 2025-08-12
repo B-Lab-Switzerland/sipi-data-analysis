@@ -95,3 +95,15 @@ def json_dump(dirpath, file, jsonstr):
     dirpath.mkdir(parents=True, exist_ok=True)
     with open(dirpath / file, 'w') as f:
         data_json_str = json.dump(jsonstr, f, indent=2)
+
+def pretty_print(dfdict):
+    """
+    Create pretty printout of a
+    dictionary with pd.DataFrames
+    as values.
+    """
+    for k, v in dfdict.items():
+        print(k + ":")
+        print("-"*(len(k)+1))
+        display(v)
+        print()

@@ -84,34 +84,52 @@ zscores_plot_fpath = "zscores.png"
 # Result files
 # ------------
 # (data availability analysis / data_availability_dir)
+# - Number of metrics per capital
 n_metrics_per_cap_fpath = data_availability_dir / "n_metrics_per_capital.csv"
 n_metrics_per_cap_plot_fpath = data_availability_dir / "n_metrics_per_capital.png"
-n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
-n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
-data_availability_fpath = data_availability_dir / "data_availability.csv"
-data_availability_chart_fpath = data_availability_dir / "data_availability_all.pdf"
+
+# - Number of sparse metrics per capital
 sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.csv"
+n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
+
+# - Number of irrelevant metrics per capital
 irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.csv"
+n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
+
+# - Number of datapoints per metric
+n_measurements_per_metrics_fpath = data_availability_dir / "n_datapoints_per_metric.csv"
+data_availability_map_fpath = data_availability_dir / "data_availability_map.csv"
+data_availability_chart_fpath = data_availability_dir / "data_availability_all.pdf"
 
 # (time series analysis / tsa_dir)
 stationary_ts_fpath = tsa_dir / "stationary.csv"
 non_stationary_ts_fpath = tsa_dir / "non_stationary.csv"
 
 # (correlation analysis / corra_dir)
-non_redundant_obs_fpath = corra_dir / "non_redundant_observables.csv"
-pruned_metrics_fpath = corra_dir / "pruned_metrics.xlsx"
-all_corrmat_fpath = corra_dir / "corrmat_all.pdf"
-pruned_corrmat_fpath = corra_dir / "corrmat_pruned.pdf"
+all_corrmat_fpath = lambda infix: corra_dir / f"corrmat_all_{infix}.csv"
+all_corrmat_plot_fpath = lambda infix: corra_dir / f"corrmat_all_{infix}.pdf"
+metric_counts_fpath = lambda infix:corra_dir / f"n_to_keep_vs_corr_threshold_{infix}.csv"
+metric_counts_plot_fpath = lambda infix: corra_dir / f"n_nonredundant_per_threshold_{infix}.pdf"
+to_keep_fpath = lambda infix: corra_dir / f"metrics_to_keep_{infix}.xlsx"
+corr_groups_fpath = lambda infix, thstring: corra_dir / f"correlation_groups_{infix} / corr_group_th{thstring}.xlsx"
+corr_val_distribution_plot_fpath = lambda infix: corra_dir / f"corr_val_distribution_{infix}.png"
 
 # (performance analysis / perfa_dir)
+# - all metrics
+ranking_fpath = perfa_dir / "performance_ranking.csv"
+ranking_plot_fpath = perfa_dir / "performance_ranking_plot.png"
 slope_stats_fpath = perfa_dir / "slope_norm_stats.csv"
 slope_distro_plot_fpath = perfa_dir / "slope_norm_distribution.png"
-performance_ranking_plot_fpath = perfa_dir / "performance_ranking_plot.png"
-top3_metrics_fpath = perfa_dir / "top3_metrics.xlsx"
-bottom3_metrics_fpath = perfa_dir / "bottom3_metrics.xlsx"
-top3_metrics_per_cap_fpath = perfa_dir / "top3_metrics_per_capital.xlsx"
-bottom3_metrics_per_cap_fpath = perfa_dir / "bottom3_metrics_per_capital.xlsx"
-key_indicator_performance_fpath = perfa_dir / "key_indicator_performance_ranking.xlsx"
+top_performers_fpath = perfa_dir / "top_performers.xlsx"
+bottom_performers_fpath = perfa_dir /  "worst_performers.xlsx"
+
+# - key indicator-associated metrics
+key_indicator_ranking_fpath = perfa_dir / "key_indicators_performance_ranking.csv"
+key_indicator_ranking_plot_fpath = perfa_dir / "key_indicators_performance_ranking_plot.png"
+key_indicator_slope_stats_fpath = perfa_dir / "key_indicators_slope_norm_stats.csv"
+key_indicator_slope_distro_plot_fpath = perfa_dir / "key_indicators_slope_norm_distribution.png"
+key_indicator_top_performers_fpath = perfa_dir / "key_indicators_top_performers.xlsx"
+key_indicator_bottom_performers_fpath = perfa_dir / "key_indicators_worst_performers.xlsx"
 n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_performance_group.png"
 
 
@@ -120,4 +138,3 @@ n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_
 # ====
 url_all_monet2030_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html'
 url_monet2030_key_indicators = 'https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/key-indicators.html'
-
