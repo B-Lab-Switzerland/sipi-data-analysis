@@ -17,6 +17,62 @@ from pymonet import monet_consts as const
 
 class Analyzer(ABC):
     """
+    Abstract base class for various kinds
+    of data analysis tasks in the context
+    of MONET2030.
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+    
+    Abstract methods
+    ----------------     
+    _compute(self) -> pd.DataFrame|List[Any]
+    _plot(self, df: pandas.DataFrame):       
+
+    Concrete methods
+    ----------------
+    analyze() -> List[Any]
     """
     def __init__(self, 
                  data: pd.DataFrame,
@@ -26,11 +82,7 @@ class Analyzer(ABC):
         self.metrics_meta_table = self._get_metrics_meta_table()
         self.id2name_map = self.metrics_meta_table["metric_name"].to_dict()
         self.capitallist = [cap for cap in self.metrics_meta_table["capital - primary"].unique()]
-
-        # Paths
         self.overwrite = overwrite
-        self.data_file_paths = []
-        self.plot_file_paths = []
 
         # Containers
         self.output = None
@@ -38,6 +90,37 @@ class Analyzer(ABC):
 
     def _get_metrics_meta_table(self) -> pd.DataFrame:
         """
+        Read in meta data about each metric
+        from file.
+
+        Notice that the read-in file contains
+        rows with some duplicated metric_ids. 
+        This is because the read-in file contains
+        a table resulting from a join of metric-level
+        meta information and indicator-level meta
+        information and because some metrics are
+        related to several different indicators.
+        As for the purposes of the analysis module
+        we only need metric_IDs, names, descriptions,
+        capitals, and information about whether or
+        not they are key metrics, we drop all other
+        columns.
+        The column "is_key" is aggregated as follows:
+        if a metric ID is occurring multiple times,
+        only one instance is retained and the "is_key"
+        column of that instance is True if and only
+        if at least one of all the original instances
+        had an "is_key"-value equal to True.
+
+        Parameters
+        ----------
+        None
+        
+        Returns:
+        --------
+        metrics_meta_table : pandas.DataFrame
+            Table containing the deduplicated metric-
+            level meta-information.    
         """
         metrics_meta_table = pd.read_csv(const.metrics_meta_table_fpath).set_index("metric_id")
         key_indicators = [m for m in metrics_meta_table.loc[metrics_meta_table["is_key"],:].index]
@@ -72,11 +155,6 @@ class Analyzer(ABC):
         metrics_meta_table["is_key"].sum() == len(key_indicators)
         
         return metrics_meta_table
-
-    @staticmethod
-    def _check_files(self, path):
-        if path.exists():
-            return True
          
     @abstractmethod
     def _compute(self):
@@ -86,12 +164,30 @@ class Analyzer(ABC):
     def _plot(self, df):
         pass
 
-    def _save_data(self, file: pd.DataFrame|dict, path: Path):
+    def _save_data(self, data: pd.DataFrame|dict, path: Path):
         """
+        Save the data to disk at "path".
+
+        The function checks if the file at
+        "path" already exists and overwrites
+        it only if self.overwrite = True.
+        
+        Parameters
+        ----------
+        data : pandas.DataFrame|dict
+            Data to be written to disk
+
+        path : pathlib.Path
+            File path to where the data
+            shall be written.
+
+        Returns
+        -------
+        None
         """
-        if not(isinstance(file, pd.DataFrame) or isinstance(file, dict)):
-            print("File is neither a pandas dataframe nor a dictionary.")
-            print(f"File is of type {type(file)}.")
+        if not(isinstance(data, pd.DataFrame) or isinstance(data, dict)):
+            print("Data is neither a pandas.DataFrame nor a dictionary.")
+            print(f"Data is of type {type(data)}.")
             return
                   
         if path.exists() and not(self.overwrite):
@@ -101,17 +197,17 @@ class Analyzer(ABC):
             if self.overwrite:
                 print(f"Overwriting existing file {path.as_posix()}...")
             
-            if isinstance(file, pd.DataFrame):
+            if isinstance(data, pd.DataFrame):
                 assert path.as_posix().endswith(".csv")
                 print(f"Writing file {path.as_posix()}...")
-                file.to_csv(path)
+                data.to_csv(path)
                 print("-> Done!")
                 
-            if isinstance(file, dict):
+            if isinstance(dat, dict):
                 assert path.as_posix().endswith(".xlsx")
                 print(f"Writing file {path.as_posix()}...")
                 with pd.ExcelWriter(path) as writer:
-                    for name, df in file.items():
+                    for name, df in data.items():
                         name = str(name).replace("[","_")\
                                    .replace("]","_")\
                                    .replace("/","_or_")\
@@ -124,6 +220,24 @@ class Analyzer(ABC):
 
     def _save_figure(self, fig: Figure, path: Path):
         """
+        Save the figure to disk at "path".
+
+        The function checks if the figure file 
+        at "path" already exists and overwrites
+        it only if self.overwrite = True.
+        
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure
+            Figure to be written to disk
+
+        path : pathlib.Path
+            File path to where the figure
+            shall be written.
+
+        Returns
+        -------
+        None
         """
         assert path.as_posix().endswith(".png") or path.as_posix().endswith(".pdf")
         
@@ -137,25 +251,87 @@ class Analyzer(ABC):
             fig.savefig(path, bbox_inches="tight")
             print("-> Done!")
             
-    def analyze(self) -> List[pd.DataFrame]:
+    def analyze(self):
         """
+        Execute the current analysis
+        step.
+
+        An analysis step consists of computing
+        the respective analysis results and
+        subsequently producing a plot based
+        on these results.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
-        computation_results = self._compute()
-
-        if isinstance(computation_results, list):
-            data_to_plot = computation_results[0]  
-        else:
-            data_to_plot = computation_results                    
-            computation_results = [computation_results]
-            
-        display(data_to_plot)
-        self._plot(data_to_plot)
-        return computation_results
-
+        self._compute()
+        self._plot()
+        
 class nMetricsPerCapital(Analyzer):
     """
     Analyze number of metrics per capital
     before and after data cleaning.
+
+    Child of ABC "Analyzer".
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    Private Methods
+    ---------------
+    _compute() -> None
+    _plot() -> None
+
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def _compute(self):
         """
@@ -168,9 +344,7 @@ class nMetricsPerCapital(Analyzer):
 
         Returns
         -------
-        n_metrics_per_cap : pandas.DataFrame
-            Table containing the number of metrics
-            per capital before and after cleaning.
+        None
         """
         metrics_meta_table = self.metrics_meta_table[self.metrics_meta_table.index.str.endswith("metr")]
 
@@ -199,9 +373,7 @@ class nMetricsPerCapital(Analyzer):
         # Write result to disk
         self._save_data(n_metrics_per_cap, const.n_metrics_per_cap_fpath)
 
-        return n_metrics_per_cap
-
-    def _plot(self, df):
+    def _plot(self):
         """
         Create plot showing the number of metrics
         per capital both before and after data
@@ -209,16 +381,20 @@ class nMetricsPerCapital(Analyzer):
 
         Parameters
         ----------
-        df: pandas.DataFrame
-            Table containing the relevant counts
+        None
+
+        Returns
+        -------
+        None
         """
         fig, ax = plt.subplots(figsize=(7,4))
-        df.plot(kind="bar", ax=ax)
+        self.output.plot(kind="bar", ax=ax)
         ax.grid(True)
         ax.set_title("Number of Metrics per Capital")
-        ax.set_xticks([0,1,2,3], df.index, rotation=0)
+        ax.set_xticks([0,1,2,3], self.output.index, rotation=0)
         ax.set_xlabel("Capital")
         ax.set_ylabel("Count")
+        self._save_figure(fig, const.n_metrics_per_cap_plot_fpath)
         plt.show()
         
 
@@ -227,6 +403,62 @@ class nSparseMetricsPerCapital(Analyzer):
     Analyze number of sparse metrics per capital.
     A metric is considered sparse if there are
     less than 10 data points.
+
+    Child of ABC "Analyzer".
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    Private Methods
+    ---------------
+    _compute() -> None
+    _plot() -> None
+
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def _compute(self):
         """
@@ -239,9 +471,7 @@ class nSparseMetricsPerCapital(Analyzer):
 
         Returns
         -------
-        n_sparse_metrics_per_cap : pandas.DataFrame
-            Table containing the number of sparse
-            metrics per capital.
+        None
         """
 
         sparse_metrics = list(self.input["sparse columns (<10 data points)"].values)
@@ -259,25 +489,27 @@ class nSparseMetricsPerCapital(Analyzer):
         
         # Write result to disk
         self._save_data(sparse_metrics_df, const.sparse_metrics_analysis_fpath)
-    
-        return [sparse_metrics_df, sparse_metrics_names]
 
-    def _plot(self, df):
+    def _plot(self):
         """
         Create plot showing the number of sparse
         metrics per capital.
 
         Parameters
         ----------
-        df: pandas.DataFrame
-            Table containing the relevant counts
+        None
+
+        Returns
+        -------
+        None
         """
         fig, ax = plt.subplots(figsize=(7,4))
-        df.plot(kind="bar", ax=ax, legend=False)
+        self.output.plot(kind="bar", ax=ax, legend=False)
         ax.grid(True)
         ax.set_xlabel("Capital")
         ax.set_ylabel("Count")
         ax.set_title("Number of sparse metrics per capital")
+        self._save_figure(fig, const.n_sparse_by_capital_plot_fpath)
         plt.show()
 
 
@@ -285,6 +517,62 @@ class nIrrelevantMetricsPerCapital(Analyzer):
     """
     Analyze number of metrics per capital considered
     irrelevant for agenda2030.
+
+    Child of ABC "Analyzer".
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    Private Methods
+    ---------------
+    _compute() -> None
+    _plot() -> None
+
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def _compute(self):
         """
@@ -297,9 +585,7 @@ class nIrrelevantMetricsPerCapital(Analyzer):
 
         Returns
         -------
-        n_irrev_metrics_per_cap : pandas.DataFrame
-            Table containing the number of irrelevant
-            metrics per capital.
+        None
         """
 
         irrelevant_metrics = list(self.input.columns)
@@ -318,9 +604,7 @@ class nIrrelevantMetricsPerCapital(Analyzer):
         # Write result to disk
         self._save_data(irrelevant_metrics_counts, const.irrelevant_metrics_analysis_fpath)
 
-        return [irrelevant_metrics_counts, irrelevant_metrics_names]
-
-    def _plot(self, df):
+    def _plot(self):
         """
         Create plot showing the number of irrelevant
         metrics per capital.
@@ -329,46 +613,107 @@ class nIrrelevantMetricsPerCapital(Analyzer):
         ----------
         df: pandas.DataFrame
             Table containing the counts
+
+        Returns
+        -------
+        None
         """
         fig, ax = plt.subplots(figsize=(7,4))
-        df.plot(kind="bar", ax=ax, legend=False)
+        self.output.plot(kind="bar", ax=ax, legend=False)
         ax.grid(True)
         ax.set_xlabel("capital")
         ax.set_ylabel("count")
         ax.set_title("Number of metrics irrelevant to agenda2030 (per capital)")
+        self._save_figure(fig, const.n_irrelevant_by_capital_plot_fpath)
         plt.show()
 
 class RawDataAvailability(Analyzer):
     """
-    Visualizes data availability in
-    two different ways.
+    Visualizes data availability in two different
+    ways.
 
-    Running the "analyze"-method of
-    this class, a plot with two panels
-    is generated: the right panel is a
-    horizontal bar chart where each bar
-    length indicates the number of measured
-    data points available in the raw data
-    for every metric. In the left panel,
-    a heatmap shows in addition in what
-    year a data point is available for
-    any given metric and in what year
-    there is no data: a colored tile
-    means there is data for a given year
-    and metric while a blank (white) tile
-    means the corresponding data point is
+    Running the "analyze"-method of this class,
+    a plot with two panels is generated: the
+    right panel is a horizontal bar chart where
+    each bar length indicates the number of
+    measured data points available in the raw
+    data for every metric. In the left panel,
+    a heatmap shows in addition in what year
+    a data point is available for any given
+    metric and in what year there is no data:
+    a colored tile means there is data for a
+    given year and metric while a blank (white)
+    tile means the corresponding data point is
     missing.
 
     The different colors used in the plot
-    indicate to which capital (human,
-    social, natural or economic) a specific
-    metric belongs.
+    indicate to which capital (human, social,
+    natural or economic) a specific metric
+    belongs.
 
     ** IMPORTANT **
-    While this class still inherits from 
-    the Analyzer class, the analyze method
-    is overwritten to pass two different
+    While this class still inherits from the
+    Analyzer class, the analyze method is
+    overwritten to pass two different
     pandas.DataFrames to the _plot routine.
+
+    Child of ABC "Analyzer".
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    Private Methods
+    ---------------
+    _count_datapoints_per_metric(df: pd.DataFrame) -> pd.DataFrame
+    _data_availability_map(df: pd.DataFrame) -> pd.DataFrame
+    _compute() -> None
+    _plot() -> None
+
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def _count_datapoints_per_metric(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -405,18 +750,16 @@ class RawDataAvailability(Analyzer):
         """
         Compute data availability map.
 
-        The map is given by a DataFrame
-        with years in the columns and the
-        metrics as rows (i.e. transposed
-        w.r.t. to the original input data).
-        Also, the map is guaranteed to have
-        consecutive years in the columns
-        and no "time gaps".
+        The map is given by a DataFrame with
+        years in the columns and the metrics
+        as rows (i.e. transposed w.r.t. to the
+        original input data). Also, the map is
+        guaranteed to have consecutive years in
+        the columns and no "time gaps".
 
         Each entry in the resulting availability
         map is either a number (if data is
-        available) or nan (it there is no
-        data).
+        available) or nan (it there is no data).
         
         Parameters
         ----------
@@ -480,7 +823,7 @@ class RawDataAvailability(Analyzer):
 
         return trp
         
-    def _compute(self) -> Tuple[pd.DataFrame]:
+    def _compute(self):
         """
         Compute the availability of measured
         data in the dataset.
@@ -492,15 +835,13 @@ class RawDataAvailability(Analyzer):
         availability (which metric has been
         measured in what year).
 
+        Parameters
+        ----------
+        None
+
         Returns
         -------
-        metric_counts : pandas.DataFrame
-            DataFrame containing the counts of
-            datapoints per metric
-            
-        metric_availability_map : pandas.DataFrame
-            DataFrame/availability mask indicating
-            which metric is measured in what year.
+        None
         """
         metric_counts = self._count_datapoints_per_metric(self.input)
         metric_availability_map = self._data_availability_map(self.input)
@@ -516,10 +857,8 @@ class RawDataAvailability(Analyzer):
         # Write result to disk
         self._save_data(metric_counts, const.n_measurements_per_metrics_fpath)
         self._save_data(metric_availability_map, const.data_availability_map_fpath)
-        
-        return metric_counts, metric_availability_map
 
-    def _plot(self, counts: pd.DataFrame, availability_map: pd.DataFrame):
+    def _plot(self):
         """
         Creates the two-panel plot (see class
         doc-string for more details).
@@ -529,18 +868,16 @@ class RawDataAvailability(Analyzer):
 
         Parameters
         ----------
-        counts: pandas.DataFrame
-            DataFrame containing counts of
-            measured data points per metric.
-        
-        availability_map: pandas.DataFrame
-            DataFrame encoding the heatmap
-            with temporal availability data.
+        None
+
+        Returns
+        -------
+        None
         """
         fig,axs=plt.subplots(1,2, figsize=(17,30), sharey=True, gridspec_kw = {"wspace": 0.01})
         
         # Left plot panel: temporal availability heatmap
-        axs[0] = plot.visualize_data_availability_colored(availability_map,
+        axs[0] = plot.visualize_data_availability_colored(self.additional_results["metric_availability_map"],
                                                           "Year",
                                                           "Metric Name",
                                                           "MONET2030 metric data availability across time",
@@ -548,7 +885,7 @@ class RawDataAvailability(Analyzer):
                                                          )
         
         # Right plot panel: counts-only bar chart
-        axs[1] = plot.raw_data_availability_barchart(counts,
+        axs[1] = plot.raw_data_availability_barchart(self.output,
                                                      "Number of measured data points per metric",
                                                      "Metric Name",
                                                      "Number of measured data points per metric",
@@ -561,33 +898,101 @@ class RawDataAvailability(Analyzer):
         self._save_figure(fig, const.data_availability_chart_fpath)
         plt.show()
 
-    def analyze(self) -> List[pd.DataFrame]:
-        """
-        Compute and visualize the data availability.
 
-        First, count the number of datapoints per
-        metric (stored in "metric_counts") and
-        analyze in what year the datapoints were
-        measured (stored in "metric_availability_map").
-        Then, pass both results on to the plotting
-        routine for visualization.
-
-        Returns
-        -------
-        computation_results : List[pandas.DataFrame]
-            A list containing the two computation
-            results "metric_counts" and 
-            "metric_availability_map".
-        """
-        metric_counts, metric_availability_map = self._compute()    
-        self._plot(metric_counts, metric_availability_map)
-
-        computation_results = [metric_counts, metric_availability_map]
-        return computation_results
-
-        
 class CorrleationAnalysis(Analyzer):
     """
+    Perform all analysis steps related to 
+    cross-correlating the different metrics.
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+
+    Optional Parameters
+    -------------------
+    lag: int [default: 0]
+        Lag at which the cross-correlations
+        shall be computed. When lag<0, then
+        the cross-correlations are computed
+        at all possible lags and max/min-
+        aggregated. See documentation of
+        utils.CorrelationAnalysis for more
+        details.
+    
+    threshold_vector: Iterable|None [default: None]
+        Vector of thresholds at which the
+        metric pruning shall be performed.
+        When is set to None, it will be
+        automatically set to
+        [th/100 for th in range(80,100,2)]\
+        +[0.99, 0.999]
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    lag : int
+        See input parameter "lag".
+    
+    infix = f"lag{self.lag}" if self.lag>=0 else f"aggregated"
+        Infix used to modify path names.
+        
+    th_vec : List[float]
+        See input parameter "threshold_vector"
+
+    Private Methods
+    ---------------
+    _filter_metrics_by_correlation(corranalysis_obj: utils.CorrelationAnalysis,
+                                   corrmat: pandas.DataFrame
+                                  ) -> Tuple[pandas.DataFrame,
+                                             dict[float, List[str]],
+                                             dict[float, dict[str, pandas.DataFrame]]
+                                            ]
+    _plot_number_of_redundant_metrics() -> None
+    _plot_corrval_distributions() -> None
+    _compute() -> None
+    _plot() -> None
+    
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def __init__(self,
                  data: pd.DataFrame,
@@ -606,8 +1011,59 @@ class CorrleationAnalysis(Analyzer):
         # Containers
         self.additional_results = dict()
 
-    def _filter_metrics_by_correlation(self, corranalysis_obj, corrmat):
+    def _filter_metrics_by_correlation(self,
+                                       corranalysis_obj: utils.CorrelationAnalysis,
+                                       corrmat: pd.DataFrame
+                                      ) -> Tuple[pd.DataFrame,
+                                                 dict[float, List[str]],
+                                                 dict[float, dict[str, pd.DataFrame]]
+                                                ]:
         """
+        Peform metric pruning based on correlation
+        analysis.
+
+        For full information about how the pruning
+        is done, see documentation of 
+        utils.CorrelationAnalysis.
+
+        The pruning is done for each value in the
+        vector in self.th_vec.
+
+        Parameters
+        ----------
+        corranalysis_obj : utils.CorrelationAnalysis
+            CorrelationAnalysis object containing
+            required correlation analysis data.
+            
+        corrmat : pandas.DataFrame
+            Dataframe containing all pairwise 
+            correlations for each pair of metrics.
+            
+        Returns
+        -------
+        counts : pandas.DataFrame
+            DataFrame containing number
+            of retained metrics after pruning
+            for each value in self.th_vec (columns)
+            per capital (rows).
+            
+        to_keep_dict : dict[float, List[str]]
+            Lists of metrics retained after
+            pruning at threshold value th.
+            The threshold values are the keys
+            of the dictionary, the lists are
+            the values.
+        
+        corr_groups : dict[float, dict[str, pandas.DataFrame]]
+            A dictionary containing key-value pairs
+            where the key is a threshold value th
+            and the value is again a dictionary. The
+            inner dictionary contains a metric name
+            as the keys and the corresponding 
+            values (pandas.DataFrames) list all
+            the metrics which are correlated more
+            strongly than the threshold value th
+            with the metric in the key.
         """
         # Initialize containers
         counts_list = []
@@ -659,6 +1115,18 @@ class CorrleationAnalysis(Analyzer):
         
     def _compute(self):
         """
+        Run the correlation analysis and use the
+        results to prune the list of MONET2030
+        metrics using several different correlation
+        threshold values.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
         monet_ca = utils.CorrelationAnalysis(self.input)
 
@@ -688,12 +1156,23 @@ class CorrleationAnalysis(Analyzer):
                 continue
             
             self._save_data(group, fpath)
-        
-        return counts, corrmat
 
-    def _plot_number_of_redundant_metrics(self, counts_df):
+    def _plot_number_of_redundant_metrics(self):
         """
+        Plot the number of metrics retained
+        after pruning vs a list of different
+        correlation thresholds.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
+        counts_df = self.output
+        
         fig, ax = plt.subplots(figsize=(10,4))
         counts_df.T.plot(kind="line", ax=ax)
         ax.set_xticks(counts_df.columns, counts_df.columns, rotation=60)
@@ -714,57 +1193,127 @@ class CorrleationAnalysis(Analyzer):
         self._save_figure(fig, const.metric_counts_plot_fpath(self.infix))
         plt.show()
 
-    def _plot_corrval_distributions(self, corrmat):
+    def _plot_corrval_distributions(self):
         """
+        Plot histogram of correlation values.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
         fig, axs = plt.subplots(1,2, figsize=(10,4))
         ax = axs[0]
-        sns.histplot(corrmat.unstack().values, ax=ax, kde=True, bins=40)
+        sns.histplot(self.additional_results["correlation_matrix"].unstack().values, 
+                     ax=ax, 
+                     kde=True, 
+                     bins=40)
         ax.set_title("Distribution of correlation values")
         ax.set_xlabel("corr")
         
         ax = axs[1]
-        sns.histplot(corrmat.unstack().abs().values, ax=ax, bins=20)
+        sns.histplot(self.additional_results["correlation_matrix"].unstack().abs().values,
+                     ax=ax,
+                     bins=20)
         ax.set_title("Distribution of abs(correlation) values")
         ax.set_xlabel("abs(corr)")
         plt.tight_layout()
         self._save_figure(fig, const.corr_val_distribution_plot_fpath(self.infix))
         plt.show()
         
-    def _plot(self, counts_df, corrmat):
+    def _plot(self):
         """
-        Create visualizations 
-        """
-        self._plot_number_of_redundant_metrics(counts_df)
-        self._plot_corrval_distributions(corrmat)
+        Create the cross-correlation and pruning
+        visualizations.
 
-    def analyze(self) -> List[pd.DataFrame]:
-        """
-        Compute and visualize the data availability.
-
-        First, count the number of datapoints per
-        metric (stored in "metric_counts") and
-        analyze in what year the datapoints were
-        measured (stored in "metric_availability_map").
-        Then, pass both results on to the plotting
-        routine for visualization.
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        computation_results : List[pandas.DataFrame]
-            A list containing the two computation
-            results "metric_counts" and 
-            "metric_availability_map".
+        None
         """
-        counts, corrmat = self._compute()    
-        self._plot(counts, corrmat)
-
-        computation_results = [counts, corrmat]
-        return computation_results
-
+        self._plot_number_of_redundant_metrics()
+        self._plot_corrval_distributions()
 
 class PerformanceRanker(Analyzer):
     """
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        monet_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+
+    Optional Parameters
+    -------------------
+    key_indicators_only: bool [default: False]
+        Flag indicating whether or not the
+        analysis should be done only using
+        metrics associated to MONET2030
+        key-indicators.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    trend_targets : pandas.DataFrame
+        Table containing the desired trend
+        for each metric as published on the
+        WWW.
+
+    key_indicators_only : bool
+        See input argument "key_indicators_only".
+
+    Private Methods
+    ---------------
+    _get_desired_trends
+    _plot_number_of_redundant_metrics
+    _plot_corrval_distributions(corrmat)
+    _compute()
+    _plot()
+    
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
     """
     def __init__(self,
                  data: pd.DataFrame,
@@ -774,7 +1323,7 @@ class PerformanceRanker(Analyzer):
         self.trend_targets = self._get_desired_trends()
         self.key_indicators_only = key_indicators_only
         
-    def _get_desired_trends(self):
+    def _get_desired_trends(self) -> pd.DataFrame:
         """
         Read in the desired/targeted directions from
         a file on disk. This informatino is scraped
@@ -783,7 +1332,9 @@ class PerformanceRanker(Analyzer):
         Returns
         -------
         directions_with_names : pandas.DataFrame
-            
+            Table containing the desired trend
+            for each metric as published on the
+            WWW.
         """
         directions = pd.read_csv(const.trend_directions).set_index("metric_id")
         directions["dam_id"] = [int(metr_id.split("_")[0][:-1]) for metr_id in directions.index]
@@ -795,8 +1346,38 @@ class PerformanceRanker(Analyzer):
                                                        "desired_trend"]]
         return directions_with_names
 
-    def _compute_slope(self, mid):
+    def _compute_slope(self, mid: str) -> Tuple[float, float]:
         """
+        Computes the slope and the normalized
+        slope for the metric specified by
+        the metric ID "mid".
+
+        The normalized slope is equal to the
+        slope up to the sign, which depends
+        on the desired trend. If the desired
+        trend of a given metric is "down", then
+        the normlalized slope is (-1) times
+        the slope. As a result, a higher
+        normalized slope is always better
+        (while for the slope it depends on the
+        desired trend whether a higher or a 
+        lower value is better).
+
+        Parameters
+        ----------
+        mid : str
+            a metric ID
+
+        Returns
+        -------
+        slope : float
+            The actual slope of the linear
+            interpolation of the values
+            for the metric mid.
+
+        slope_norm : float
+            Normalized slope for the metric
+            mid as defined above.
         """
         data = self.input[mid].dropna()
         x = [year for year in data.keys()]
@@ -812,8 +1393,42 @@ class PerformanceRanker(Analyzer):
 
         return slope, slope_norm
 
-    def _best3_metrics_per_capital(self, rankings, cap: str|None=None):
+    def _best3_metrics_per_capital(self, 
+                                   rankings: pd.DataFrame, 
+                                   cap: str|None=None
+                                  ) -> pd.DataFrame:
         """
+        Extract three top-performing metrics.
+
+        The ranking is done by normalized slope.
+        The higher the normalized slope the better.
+        Therefore, this method returns the three
+        metrics with highest normalized slopes
+        (either overall or for a specified capital).
+
+        Parameters
+        ----------
+        rankings : pandas.DataFrame
+            DataFrame containing the MONET2030
+            metrics ranked by their normalized
+            slopes from highest to lowest.
+
+        Optional Parameters
+        -------------------
+        cap : str [default: None]
+            A specific capital (i.e. "Social", 
+            "Human", "Natural", or "Economic").
+            If not None, the three top metrics
+            within the defined capital are returned.
+            Otherwise, the capital aspect is 
+            ignored and the top 3 metrics over 
+            all capitals are returned.
+
+        Returns
+        -------
+        top3 : pandas.DataFrame
+            A dataframe containing the three
+            top-performing metrics.
         """
         if cap is None:
             top3 = rankings.head(3)
@@ -822,8 +1437,42 @@ class PerformanceRanker(Analyzer):
 
         return top3
 
-    def _worst3_metrics_per_capital(self, rankings, cap: str|None=None):
+    def _worst3_metrics_per_capital(self, 
+                                    rankings: pd.DataFrame, 
+                                    cap: str|None=None
+                                   ) -> pd.DataFrame:
         """
+        Extract three worst-performing metrics.
+
+        The ranking is done by normalized slope.
+        The higher the normalized slope the better.
+        Therefore, this method returns the three
+        metrics with lowest normalized slopes
+        (either overall or for a specified capital).
+
+        Parameters
+        ----------
+        rankings : pandas.DataFrame
+            DataFrame containing the MONET2030
+            metrics ranked by their normalized
+            slopes from highest to lowest.
+
+        Optional Parameters
+        -------------------
+        cap : str [default: None]
+            A specific capital (i.e. "Social", 
+            "Human", "Natural", or "Economic").
+            If not None, the three worst metrics
+            within the defined capital are returned.
+            Otherwise, the capital aspect is 
+            ignored and the three worst metrics
+            over all capitals are returned.
+
+        Returns
+        -------
+        bottom3 : pandas.DataFrame
+            A dataframe containing the three
+            worst-performing metrics.
         """
         if cap is None:
             bottom3 = rankings.tail(3)
@@ -832,8 +1481,27 @@ class PerformanceRanker(Analyzer):
 
         return bottom3
 
-    def rank_metrics(self):
+    def rank_metrics(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
+        Compute the ranking of the MONET2030
+        metrics based on their normalized
+        slope. See documentation of 
+        "_compute_slope" for more information.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        ranking : pandas.DataFrame
+            DataFrame containing the MONET2030
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        slope_norm_stats : pandas.DataFrame
+            DataFrame containing summary statistics
+            of the normalizes slopes per capital.
         """
         # Get a table with all metrics including their name and desired_trend and 
         # prepare two columns for slope information: slope and slope_norm        
@@ -868,8 +1536,26 @@ class PerformanceRanker(Analyzer):
             
         return ranking, slope_norm_stats
 
-    def get_top3(self, ranking):
+    def get_top3(self, ranking: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """
+        Compute the three top-performing metrics
+        for each capital and overall. Also, combine
+        the top-performing metrics of per capital
+        into a combined view.
+
+        Parameters
+        ----------
+        ranking : pandas.DataFrame
+            DataFrame containing the MONET2030
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        Returns
+        -------
+        top3 : Dict[str, pd.DataFrame]
+            A dict containing the three top-performing
+            metrics for each of the four capitals as
+            well as over all the capitals.
         """
         if self.key_indicators_only:
             ranking = ranking[ranking["is_key"]]
@@ -884,8 +1570,26 @@ class PerformanceRanker(Analyzer):
 
         return top3 
             
-    def get_bottom3(self, ranking):
+    def get_bottom3(self, ranking: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """
+        Compute the three worst-performing metrics
+        for each capital and overall. Also, combine
+        the top-performing metrics of per capital
+        into a combined view.
+
+        Parameters
+        ----------
+        ranking : pandas.DataFrame
+            DataFrame containing the MONET2030
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        Returns
+        -------
+        top3 : Dict[str, pd.DataFrame]
+            A dict containing the three worst-performing
+            metrics for each of the four capitals as
+            well as over all the capitals.
         """
         if self.key_indicators_only:
             ranking = ranking[ranking["is_key"]]
@@ -901,6 +1605,19 @@ class PerformanceRanker(Analyzer):
 
     def _compute(self):
         """
+        Compute the ranking of all MONET2030 metrics
+        based on their normalized slope and extract
+        the top and worst performing metrics based
+        on this ranking. Also, extract some summary
+        statistics about the normalized slopes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
         ranking, slope_stats = self.rank_metrics()
 
@@ -927,13 +1644,21 @@ class PerformanceRanker(Analyzer):
             self._save_data(best, const.top_performers_fpath)
             self._save_data(worst, const.bottom_performers_fpath)
 
-        return [ranking, best, worst, slope_stats]
-
-    def _plot_ranking_distributions(self, ranking_df):
+    def _plot_ranking_distributions(self):
         """
+        Create box plot showing distribution of
+        normalized slopes per capital.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
         fig, ax = plt.subplots(figsize=(10,3))
-        sns.boxplot(data=ranking_df, x="capital - primary", y="slope_norm", ax=ax)
+        sns.boxplot(data=self.output, x="capital - primary", y="slope_norm", ax=ax)
         ax.grid(True)
         if self.key_indicators_only:
             ax.set_title("Distribution of normalized slopes per capital (key indicators only)")
@@ -949,10 +1674,21 @@ class PerformanceRanker(Analyzer):
             self._save_figure(fig, const.slope_distro_plot_fpath)
         plt.show()
 
-    def _plot_metrics_performance_ranking(self, ranking_df):
+    def _plot_metrics_performance_ranking(self):
         """
+        Create horizontal bar chart showing the
+        normalized slopes for each metric in 
+        decreasing order.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
-        df = ranking_df
+        df = self.output
         if self.key_indicators_only: 
             fig, ax = plt.subplots(figsize=(15,6))
         else:
@@ -995,27 +1731,62 @@ class PerformanceRanker(Analyzer):
             self._save_figure(fig, const.ranking_plot_fpath)
         plt.show()
 
-    def _plot(self, data):
+    def _plot_nkey_per_group(self) -> None:
         """
-        """
-        self._plot_ranking_distributions(data)
-        self._plot_metrics_performance_ranking(data)    
-            
-        
-def plot_nkey_per_group(best, worst):
-    """
-    """
-    n_key_among_top = best["combined"]["is_key"].sum()
-    n_key_among_bottom = worst["combined"]["is_key"].sum()
+        Creates a stacked bar chart showing
+        what fraction of all the best- and
+        worst performing metrics is in the
+        group of key indicators.
     
-    fig, ax = plt.subplots()
-    ax.bar([0,1], height=[n_key_among_top, n_key_among_bottom], label="key indicators")
-    ax.bar([0,1], height=[12-n_key_among_top, 12-n_key_among_bottom], bottom=[n_key_among_top, n_key_among_bottom], label="non-key indicators")
-    ax.grid(True)
-    ax.set_xticks([0,1], ["top 3 for all capitals", "bottom 3 for all capital"])
-    ax.legend(loc="lower center", bbox_to_anchor=[0.5, -0.25], ncols=2)
-    ax.set_xlabel("Performance group")
-    ax.set_ylabel("Counts")
-    ax.set_title("Fraction of key indicator metrics per performance group")
-    fig.savefig(const.n_key_indicators_per_performance_plot_fpath, bbox_inches="tight")
-    plt.show()
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        """
+        n_key_among_top = self.additional_results["top_performers"]["combined"]["is_key"].sum()
+        n_key_among_bottom = self.additional_results["bottom_performers"]["combined"]["is_key"].sum()
+        
+        fig, ax = plt.subplots()
+        ax.bar([0,1], 
+               height=[n_key_among_top, n_key_among_bottom],
+               facecolor="blue",
+               label="key indicators"
+              )
+        ax.bar([0,1],
+               height=[12-n_key_among_top, 12-n_key_among_bottom],
+               bottom=[n_key_among_top, n_key_among_bottom],
+               facecolor="orange",
+               label="non-key indicators"
+              )
+        ax.grid(True)
+        ax.set_xticks([0,1], ["top 3 for all capitals", "bottom 3 for all capital"])
+        ax.legend(loc="lower center", bbox_to_anchor=[0.5, -0.25], ncols=2)
+        ax.set_xlabel("Performance group")
+        ax.set_ylabel("Counts")
+        ax.set_title("Fraction of key indicator metrics per performance group")
+        fig.savefig(const.n_key_indicators_per_performance_plot_fpath, bbox_inches="tight")
+        plt.show()
+
+    def _plot(self):
+        """
+        Create the ranking plot (horizontal
+        bar chart) and the box plot for the
+        normalized statistics.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self._plot_ranking_distributions()
+        self._plot_metrics_performance_ranking() 
+        if not self.key_indicators_only:
+            self._plot_nkey_per_group()
+
+        
