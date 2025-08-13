@@ -997,13 +997,20 @@ class CorrleationAnalysis(Analyzer):
     def __init__(self,
                  data: pd.DataFrame,
                  lag: int = 0,
-                 threshold_vector: Iterable|None = None
+                 threshold_vector: Iterable|None = None,
+                 key_indicators_only: bool = False
                 ):
         super().__init__(data)
+        self.key_indicators_only = key_indicators_only
+        if self.key_indicators_only:
+            key_metric_names = list(self.metrics_meta_table.loc[self.metrics_meta_table["is_key"],:].index)
+            self.input = self.input[[c for c in self.input.columns if c in key_metric_names]]
 
         # Additional parameters
         self.lag = lag
         self.infix = f"lag{self.lag}" if self.lag>=0 else f"aggregated"
+        if self.key_indicators_only:
+            self.infix += "_key_indicators_only"
         self.th_vec = threshold_vector
         if self.th_vec is None:
             self.th_vec = [th/100 for th in range(80,100,2)]+[0.99, 0.999]
@@ -1218,6 +1225,8 @@ class CorrleationAnalysis(Analyzer):
         ax.set_xlabel("correlation threshold")
         ax.set_ylabel("Number of non-redundant metrics")
         ax.set_title("Counting non-redundant metrics in dependency of\ncorrelation threshold")
+        if self.key_indicators_only:
+            ax.set_title("Counting non-redundant metrics in dependency of correlation threshold\n(considering only key indicator-associated metrics)")
         ax.grid()
         plt.tight_layout()
         self._save_figure(fig, const.metric_counts_plot_fpath(self.infix))
@@ -1249,6 +1258,8 @@ class CorrleationAnalysis(Analyzer):
                      ax=ax,
                      bins=20)
         ax.set_title("Distribution of abs(correlation) values")
+        if self.key_indicators_only:
+            ax.set_title("Distribution of abs(correlation) values\n(considering key indicator-associated metrics only)")
         ax.set_xlabel("abs(corr)")
         plt.tight_layout()
         self._save_figure(fig, const.corr_val_distribution_plot_fpath(self.infix))
@@ -1302,7 +1313,8 @@ class CorrleationAnalysis(Analyzer):
         """
         self._plot_number_of_redundant_metrics()
         self._plot_corrval_distributions()
-        self._plot_n_key_metrics_retained()
+        if not self.key_indicators_only:
+            self._plot_n_key_metrics_retained()
 
 class PerformanceRanker(Analyzer):
     """
