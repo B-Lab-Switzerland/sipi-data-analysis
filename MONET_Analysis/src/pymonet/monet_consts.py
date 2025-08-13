@@ -113,6 +113,8 @@ metric_counts_plot_fpath = lambda infix: corra_dir / f"n_nonredundant_per_thresh
 to_keep_fpath = lambda infix: corra_dir / f"metrics_to_keep_{infix}.xlsx"
 corr_groups_fpath = lambda infix, thstring: corra_dir / f"correlation_groups_{infix} / corr_group_th{thstring}.xlsx"
 corr_val_distribution_plot_fpath = lambda infix: corra_dir / f"corr_val_distribution_{infix}.png"
+n_retained_key_metrics_fpath = lambda infix: corra_dir / f"n_retained_key_metrics_after_pruning_{infix}.csv"
+n_retained_key_metrics_plot_fpath = lambda infix: corra_dir / f"n_retained_key_metrics_after_pruning_{infix}.png"
 
 # (performance analysis / perfa_dir)
 # - all metrics
