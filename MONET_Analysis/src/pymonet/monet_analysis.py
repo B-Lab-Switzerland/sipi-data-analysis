@@ -203,7 +203,7 @@ class Analyzer(ABC):
                 data.to_csv(path)
                 print("-> Done!")
                 
-            if isinstance(dat, dict):
+            if isinstance(data, dict):
                 assert path.as_posix().endswith(".xlsx")
                 print(f"Writing file {path.as_posix()}...")
                 with pd.ExcelWriter(path) as writer:
@@ -1088,7 +1088,8 @@ class CorrleationAnalysis(Analyzer):
             # need to translate those ids into metric
             # names for user to be able to intuitively
             # understand what they are looking at.
-            to_keep_names = list(to_keep_meta_df["metric_name"].values)
+            #to_keep_names = list(to_keep_meta_df["metric_name"].values)
+            to_keep_names = to_keep_meta_df[["metric_name", "is_key"]]
             corr_group_names = dict()
             for mid, ser in corr_xlsx.items():
                 m_name = self.id2name_map[mid]
@@ -1112,6 +1113,32 @@ class CorrleationAnalysis(Analyzer):
 
         # Return
         return counts, to_keep_dict, corr_groups
+
+    def _count_retained_key_metrics_after_pruning(self, to_keep_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Count how many metrics retained after pruning at
+        the various different correlation threshold 
+        are associated with key-indicators. In addition
+        to the absolute counts, also compute the fraction
+        among all the retained metrics.
+
+        Parameters
+        ----------
+        to_keep_df : pandas.DataFrame
+            DataFrame containing the retained metrics after
+            pruning and the corresponding "is_key" flags.
+
+        Returns
+        -------
+        retained_counts_df : pandas.DataFrame
+            A table containing the absolute counts (column 1)
+            and the fraction among all metrics (column 2)
+            for each correlation threshold th (rows).
+        """
+        counts = [to_keep_df[th]["is_key"].sum() for th in self.th_vec]
+        fracts = [to_keep_df[th]["is_key"].sum()/to_keep_df[th]["is_key"].count() for th in self.th_vec]
+        retained_counts_df = pd.DataFrame({"counts": counts, "fractions": fracts}, index=self.th_vec)
+        return retained_counts_df
         
     def _compute(self):
         """
@@ -1136,17 +1163,20 @@ class CorrleationAnalysis(Analyzer):
             corrmat = monet_ca.max_abs_corr()
 
         counts, to_keep, corr_groups = self._filter_metrics_by_correlation(monet_ca, corrmat)
+        retained_counts_df = self._count_retained_key_metrics_after_pruning(to_keep)
 
         # Make results available
         self.output = counts
         self.additional_results["correlation_matrix"] = corrmat
         self.additional_results["metrics_to_keep"] = to_keep
         self.additional_results["correlation_groups"] = corr_groups
+        self.additional_results["retained_key_after_pruning"] = retained_counts_df 
 
         # Write result to disk
         self._save_data(corrmat, const.all_corrmat_fpath(self.infix))
         self._save_data(counts, const.metric_counts_fpath(self.infix))
         self._save_data(to_keep, const.to_keep_fpath(self.infix))
+        self._save_data(retained_counts_df, const.n_retained_key_metrics_fpath(self.infix))
         for th, group in corr_groups.items():
             thstr = str(th).replace(".","p")
             fpath = const.corr_groups_fpath(self.infix,thstr)
@@ -1223,6 +1253,39 @@ class CorrleationAnalysis(Analyzer):
         plt.tight_layout()
         self._save_figure(fig, const.corr_val_distribution_plot_fpath(self.infix))
         plt.show()
+
+    def _plot_n_key_metrics_retained(self):
+        """
+        Create a plot showing how many of the
+        retained metrics (after pruning at
+        correlation threshold th) are associated
+        with key indicators.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        th_vec = self.th_vec
+        xvec = range(len(th_vec))
+        counts = self.additional_results["retained_key_after_pruning"]["counts"]
+        fracts = self.additional_results["retained_key_after_pruning"]["fractions"]
+        
+        fig, axs = plt.subplots(2,1, sharex=True)
+        axs[0].plot(xvec, counts, marker="d", c="blue")
+        axs[1].plot(xvec, fracts, marker="d", c="orange")
+        axs[1].set_xticks(xvec, th_vec)
+        axs[1].set_xlabel("correlation threshold")
+        axs[0].set_ylabel("absolute count")
+        axs[1].set_ylabel("fraction")
+        axs[0].set_title("Absolute number and fractions of key indicator-associated metrics\nretained after pruning at various correlation thresholds")
+        axs[0].grid(True)
+        axs[1].grid(True)
+        self._save_figure(fig, const.n_retained_key_metrics_plot_fpath(self.infix))
+        plt.show()
         
     def _plot(self):
         """
@@ -1239,6 +1302,7 @@ class CorrleationAnalysis(Analyzer):
         """
         self._plot_number_of_redundant_metrics()
         self._plot_corrval_distributions()
+        self._plot_n_key_metrics_retained()
 
 class PerformanceRanker(Analyzer):
     """
@@ -1662,7 +1726,7 @@ class PerformanceRanker(Analyzer):
         ax.grid(True)
         if self.key_indicators_only:
             ax.set_title("Distribution of normalized slopes per capital (key indicators only)")
-            ax.set_ylabel("key indicator name")
+            ax.set_ylabel("normalized slope distribution")
         else:
             ax.scatter([2],[-0.045], marker="v", color="red", label="direction of single extreme outlier")
             ax.set_ylim([-0.05,0.3])
