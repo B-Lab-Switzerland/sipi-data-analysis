@@ -22,6 +22,11 @@ class WiseLoader(object):
     def _download(self) -> None:
         """
         Download the WISE data from the WWW.
+
+        Returns
+        -------
+        req : requests.models.Response
+            Response from requests.get
         """
         r = requests.get(const.wise_download_url, stream=True)
         return r
@@ -31,6 +36,11 @@ class WiseLoader(object):
         """
         Write the WISE database (a zip file)
         to disk.
+
+        Parameters
+        ----------
+        req : requests.models.Response
+            A response from a call to requests.get
         """
         # Write ZIP file to disk
         
@@ -54,7 +64,8 @@ class WiseLoader(object):
         """
         Read the WISE database from disk.
         """
-        for sheet in ["Metrics Info", "C Data"]: # The sheets "Content", "CG Data", "Metrics C&CG", "C&CG Code" are not needed.
+        sheet_list = ["Metrics Info", "C Data"]
+        for sheet in sheet_list: # The sheets "Content", "CG Data", "Metrics C&CG", "C&CG Code" are not needed.
             self.wise_db[sheet] = pd.read_excel(const.wise_db_fpath, sheet_name=sheet)
 
     def load(self):
