@@ -9,6 +9,7 @@ import pandas as pd
 
 # Local imports
 from pywise import wise_consts as const
+from pywise import wise_aux as aux
 
 class WiseLoader(object):
     """
@@ -18,6 +19,7 @@ class WiseLoader(object):
     """
     def __init__(self):
         self.wise_db = dict()
+        self.metatable = None
         
     def _download(self) -> None:
         """
@@ -45,7 +47,7 @@ class WiseLoader(object):
         # Write ZIP file to disk
         
         with open(const.wise_db_zippath, 'wb') as fd:
-            for chunk in req.r.iter_content(chunk_size=128):
+            for chunk in req.iter_content(chunk_size=128):
                 fd.write(chunk)
 
     @staticmethod
@@ -60,25 +62,81 @@ class WiseLoader(object):
         with zipfile.ZipFile(const.wise_db_zippath, 'r') as zip_ref:
             zip_ref.extractall(const.raw_dir)
 
-    def _read(self):
+    def _read(self, fpath: Path):
         """
         Read the WISE database from disk.
         """
         sheet_list = ["Metrics Info", "C Data"]
-        for sheet in sheet_list: # The sheets "Content", "CG Data", "Metrics C&CG", "C&CG Code" are not needed.
-            self.wise_db[sheet] = pd.read_excel(const.wise_db_fpath, sheet_name=sheet)
+        wise_db = pd.read_excel(fpath, 
+                                sheet_name=sheet_list,
+                                engine="openpyxl",
+                                parse_dates=False
+                               )
+        return wise_db
 
-    def load(self):
+    def _create_metatable(self):
         """
-        Load the WISE database into memory.
+        """
+        loaded_from_disk = False
+        try:
+            metatable = pd.read_csv(const.wise_metatable_fname)
+            loaded_from_disk = True
+        except FileNotFoundError:
+            metatable = self.wise_db["Metrics Info"]
+            metatable = aux.standardize_column_names(metatable)
+        
+        metatable = metatable.set_index('metric_acronym')
 
-        If the database is not already on disk,
-        the database is downloaded from the web.
+        if not loaded_from_disk:
+            # Save to file
+            dirpath = const.wise_metatable_fname.parent
+            dirpath.mkdir(parents=True, exist_ok=True)
+            metatable.to_csv(const.wise_metatable_fname) 
+        
+        self.metatable = metatable
 
-        Returns
-        -------
-        wise_db : pandas.DataFrame
-            DataFrame containing the WISE data.
+    def load_single_country(self, country_iso3: str):
+        """
+        """
+        file_path = const.single_country_wise_db_fpath(country_iso3)
+        if not (file_path).exists():
+            print(f"File {file_path} not found.")
+            if not (const.wise_db_fpath).exists():
+                print(f"File {const.wise_db_fpath} also not yet available --> Downloading...")
+                req = self._download()
+                self._write2disk(req)
+                self._unzip()
+                print("-> Download complete.")
+                        
+            print("Reading database into memory...")
+            full_wise_db = self._read(const.wise_db_fpath)
+            print("-> Reading complete.")
+
+            print(f"Keeping only data for {country_iso3}...")
+            metrics_data = full_wise_db["C Data"]
+            
+            single_country_wise_db = dict()
+            single_country_wise_db["C Data"] = metrics_data[metrics_data["ISO3"]==country_iso3]
+            single_country_wise_db["Metrics Info" ] = full_wise_db["Metrics Info"]
+            print("-> Complete.")
+
+            print("Saving country-specific file to disk...")
+            dirpath = file_path.parent
+            dirpath.mkdir(parents=True, exist_ok=True)
+            with pd.ExcelWriter(file_path) as writer:
+                for name, df in single_country_wise_db.items():
+                    df.to_excel(writer, sheet_name=name)
+            print("-> Saving complete.")
+            
+        else:
+            print("Data already available. No download required.")
+            single_country_wise_db = self._read(file_path)
+        
+        print("-> Done!")
+        return single_country_wise_db
+
+    def load_all(self):
+        """
         """
         if not (const.wise_db_fpath).exists():
             print("File not yet available --> Downloading...")
@@ -90,6 +148,38 @@ class WiseLoader(object):
             print("Data already available. No download required.")
 
         print("Reading database into memory...")
-        self._read()
+        self._read(const.wise_db_fpath)
+        
         print("-> Done!")
-        return self.wise_db
+        return wise_db
+
+    def load(self, country_iso3: str|None = None):
+        """
+        Load the WISE database into memory.
+
+        If the database is not already on disk,
+        the database is downloaded from the web.
+
+        Optional Parameters
+        -------------------
+        country_iso3 : str
+            ISO3 country code. If defined, only
+            data for this country will be loaded
+            into memory.
+
+        Returns
+        -------
+        wise_db : pandas.DataFrame
+            DataFrame containing the WISE data.
+        """
+        if country_iso3:
+            wise_db = self.load_single_country(country_iso3)
+        else:
+            wise_db = self.load_all()
+
+        self.wise_db = wise_db
+        print("Creating meta information table...")
+        self._create_metatable()
+
+        return wise_db
+        
