@@ -29,14 +29,12 @@ data_availability_dir = results_dir / "data_availability_analysis"
 # --------------
 wise_db_zippath = raw_dir / "WISE_Database.zip"
 wise_db_fpath = raw_dir / "WISE_Database/Data/WISE_Database/WISE_Database.xlsx"
+single_country_wise_db_fpath = lambda iso3: raw_dir / f"WISE_Database/Data/WISE_Database/WISE_Database_{iso3}.xlsx" 
 
 # Meta files
 # ----------
 capmap_path = meta_dir / "capitals_map.csv"
-trend_directions = meta_dir / "trend_directions.csv"
-key_indicators = meta_dir / "key_indicators.csv"
-indicator_table_path = meta_dir / "indicator_table.csv"
-metainfo_table_path = meta_dir / "monet_datafile_summary_table.csv"
+wise_metatable_fname = meta_dir / "wise_metainfo_table.csv"
 
 # Log files
 # ---------
@@ -47,42 +45,34 @@ log_file_processed_s2_data = log_dir / "processed_s2_data_log.csv"
 # Data files at different transformation stages
 # ---------------------------------------------
 # (Stage 1)
-# multiple JSON files stored in processed_dir / "stage_1"
+wise_metric_tables_fname = "wise_metrics.xlsx" 
 
-# (Stage 2)
-# multiple JSON files stored in processed_dir / "stage_2"
-metric_id2name_fname = "metric_id_to_name_map.csv"
-
-# (Stage 3)
-compact_metrics_filename = "monet2030_metrics.csv" 
-compact_cis_filename = "monet2030_confintervals.csv"
 
 # (Stage 4 - Data cleaning)
-clean_data_fname = "monet2030_clean.csv"
-irrelevant_metrics_fname = "agenda2030_irrelevant.csv"
-duplicated_rows_fname = "duplicated_rows_removed.csv"
-constant_cols_fname = "constant_metrics.csv"
-outside_years_fname = "outside_year_range.csv"
-sparse_cols_fname = "sparse_metrics.csv"
+clean_data_fname = "wise_clean.xlsx"
+duplicated_rows_fname = "duplicated_rows_removed.xlsx"
+constant_cols_fname = "constant_metrics.xlsx"
+outside_years_fname = "outside_year_range.xlsx"
+sparse_cols_fname = "sparse_metrics.xlsx"
 clean_vs_raw_plot_fpath = "clean_vs_raw.png"
                    
 # (Stage 5 - Data imputation)
-interp_data_fname = "monet2030_interpolated.csv"
-envlp_data_fname = "monet2030_uncertainty_envelopes.csv"
-interp_tracker_fname = "monet2030_interpolation_tracker.csv"
+interp_data_fname = "wise_interpolated.xlsx"
+envlp_data_fname = "wise_uncertainty_envelopes.xlsx"
+interp_tracker_fname = "wise_interpolation_tracker.xlsx"
 interpolated_vs_clean_plot_fpath = "interpolated_vs_clean.png"
 
 # (Stage 6 - Time series decomposition)
-p_values_fname = "stl_p_values.csv" 
-optimal_stl_info_fname = "optimal_stl.csv"
-trends_fname = "monet2030_trends.csv"
-residuals_fname = "monet2030_residuals.csv"
+p_values_fname = "stl_p_values.xlsx" 
+optimal_stl_info_fname = "optimal_stl.xlsx"
+trends_fname = "wise_trends.xlsx"
+residuals_fname = "wise_residuals.xlsx"
 trends_vs_interpolated_plot_fpath = "trend_vs_interpolated.png"
 residuals_plot_fpath = "residuals.png"
 
 # (Stage 7 - Scaling)
-scaled_ts_fname = "monet2030_scaled_ts.csv"
-scaled_resids_fname = "monet2030_scaled_residuals.csv"
+scaled_ts_fname = "wise_scaled_ts.xlsx"
+scaled_resids_fname = "wise_scaled_residuals.xlsx"
 zscores_plot_fpath = "zscores.png"
 
 # Result files
