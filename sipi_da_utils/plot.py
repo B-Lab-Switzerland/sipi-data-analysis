@@ -15,7 +15,8 @@ from matplotlib.axes._axes import Axes
 capital_to_color = {'Social': tuple(np.array([177., 41., 48.])/256),
                     'Human': tuple(np.array([40., 96., 144.])/256),
                     'Natural': tuple(np.array([48., 131., 44.])/256),
-                    'Economic': tuple(np.array([216., 109., 34.])/256)}
+                    'Economic': tuple(np.array([216., 109., 34.])/256),
+                    'Composite': "gray"}
 
 def raw_data_availability_barchart(df: pd.DataFrame, 
                                    x_label: str,
@@ -253,18 +254,24 @@ def plot_data(line_df: pd.DataFrame,
         If error_df is not None and indices of line_df
         and error_df are not aligned.
     """
-    fig, axs = plt.subplots(23,5, 
-                            figsize=(25,60),
-                            gridspec_kw = {"hspace": 0.8})
+    n_panels = len(line_df.columns)
+    n_panel_cols = 5
+    n_panel_rows = int(np.ceil(n_panels/n_panel_cols))
     
+    fig, axs = plt.subplots(n_panel_rows,n_panel_cols, 
+                            figsize=(25,2.6*n_panel_rows),
+                            gridspec_kw = {"hspace": 0.8})
+
+    present_capitals = []
     for i, metric in enumerate(line_df.columns):
         ax = axs[i//5,i%5]
 
         # Get color
         panel_title = format_title(meta_info["metric_name"].loc[metric])
         capital = meta_info["capital - primary"].loc[metric]
+        present_capitals.append(capital)
         color = capital_to_color[capital]
-
+        
         # Plot lines
         line_series = line_df[metric].dropna()
         line_x = line_series.keys()
@@ -298,22 +305,25 @@ def plot_data(line_df: pd.DataFrame,
         ax.grid(True)
         ax.set_title(panel_title)
 
-        # Add a legend only if the current panel
-        # is in the bottom line in the middle
-        if i == len(line_df.columns)-3:
-            xlimits = ax.get_xlim()
-            ylimits = ax.get_ylim()
+    for j in range(len(line_df.columns), n_panel_cols * n_panel_rows):
+        ax = axs[j//5,j%5]
+        ax.axis('off')
 
-            # Dummy plots
-            ax.plot([1,2],[0,0], c=capital_to_color["Economic"], label="Economic")
-            ax.plot([1,2],[0,0], c=capital_to_color["Human"], label="Human")
-            ax.plot([1,2],[0,0], c=capital_to_color["Natural"], label="Natural")
-            ax.plot([1,2],[0,0], c=capital_to_color["Social"], label="Social")
-            
-            ax.set_xlim(xlimits)
-            ax.set_ylim(ylimits)
+    # Add a legend only if the current panel
+    # is in the bottom line in the middle
+    panel_id = (n_panel_cols * n_panel_rows)-3
+    ax = axs[panel_id//5,panel_id%5]
+    xlimits = ax.get_xlim()
+    ylimits = ax.get_ylim()
 
-            ax.legend(loc="lower center", ncol=4, bbox_to_anchor=[0.25, -0.75], fontsize=18)
+    # Dummy plots
+    for cap in set(present_capitals):
+        ax.plot([1,2],[0,0], c=capital_to_color[cap], label=cap)
+    
+    ax.set_xlim(xlimits)
+    ax.set_ylim(ylimits)
+
+    ax.legend(loc="lower center", ncol=len(set(present_capitals)), bbox_to_anchor=[0.25, -0.75], fontsize=18)
     
     fig.suptitle(title, fontsize=24, y=0.9)
     plt.tight_layout()

@@ -374,7 +374,7 @@ class WiseDataCleaning(Processor):
 
         if self.verbosity > 0:
             print(f"paths_exist: {paths_exist}")
-        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])>=1)
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.xlsx")])>=1)
 
         if self.verbosity > 0:
             print(f"dirs_not_empty: {dirs_not_empty}")
@@ -530,8 +530,14 @@ class WiseDataImputer(Processor):
         if self.verbosity > 0:
             print("Reading imputed data from disk...")
 
-        self.output = pd.read_csv(self.current_stage_fpath / const.interp_data_fname).set_index("year")
-        self.additional_results["uncertainty_envelopes"] = pd.read_csv(self.current_stage_fpath / const.envlp_data_fname).set_index("year")
+        self.output = pd.read_excel(self.current_stage_fpath / const.interp_data_fname, 
+                                    sheet_name=None,
+                                    index_col="year"
+                                   )
+        self.additional_results["uncertainty_envelopes"] = pd.read_excel(self.current_stage_fpath / const.envlp_data_fname, 
+                                                                         sheet_name=None,
+                                                                         index_col="year"
+                                                                        )
             
         print("-> done!")
 
@@ -550,7 +556,7 @@ class WiseDataImputer(Processor):
 
         if self.verbosity > 0:
             print(f"paths_exist: {paths_exist}")
-        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.csv")])==3)
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.xlsx")])==3)
 
         if self.verbosity > 0:
             print(f"dirs_not_empty: {dirs_not_empty}")
@@ -578,6 +584,298 @@ class WiseDataImputer(Processor):
                 df.to_excel(writer, sheet_name=name)
         
 
+class WiseTSDecomposer(Processor):
+    """
+    Take a set of time series (stored as columns
+    in a pandas.DataFrame) and decompose it into
+    a trend and residuals.
+
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Time Series Decomposer"
+
+    c_description : str
+        ultra-short class description = "Decompose time 
+        series into trend and residuals (no seasonality)"
+
+    Private methods
+    ---------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    """
+    c_name = "Time Series Decomposer"
+    c_description = "Decompose time series into trend and residuals (no seasonality)"
+    
+    def _year2date(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert integer years to actual dates
+        according to the rule
+
+        1950 -> 1950-01-01
+        1993 -> 1993-01-01
+        2012 -> 2012-01-01
+
+        Parameter
+        ---------
+        df : pandas.DataFrame
+            A pandas.DataFrame containing one or several
+            time series in its columns and a row index
+            of dtype int.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The same pandas.DataFrame as in the input but
+            now the row index has an actualy datetime dtype.
+        """
+        df.index = tsa.fractional_years_to_datetime(df.index)
+        return df
+        
+    def _transform(self):
+        """
+        Perform time series decomposition.
+        """
+        residuals_dict = dict()
+        trend_dict = dict()
+        slt_dict = dict()
+        pvalues_dict = dict()
+
+        for sheet, df in self.input.items():
+            assert df.index.name == "year"
+
+            ts_data = self._year2date(df.copy())
+            ts_analyzer = tsa.TSAnalyzer(ts_data)
+            residuals = ts_analyzer.decompose()
+            residuals.index.name = "date"
+
+            residuals_dict[sheet] = residuals
+            trend_dict[sheet] = ts_analyzer.trend
+            slt_dict[sheet] = ts_analyzer.optimal_stl_df.set_index("metric")
+            pvalues_dict[sheet] = ts_analyzer.pvalues_df
+        
+        # Make data available
+        self.output = residuals_dict
+        self.additional_results["trend"] = trend_dict
+        self.additional_results["optimal_stls"] = slt_dict
+        self.additional_results["pvalues_df"] = pvalues_dict
+
+        # Write processed data to csv files
+        self._save(const.residuals_fname, self.output)
+        self._save(const.trends_fname, self.additional_results["trend"])
+        self._save(const.optimal_stl_info_fname, self.additional_results["optimal_stls"])
+        self._save(const.p_values_fname, self.additional_results["pvalues_df"])
+
+        print("-> done!")
+    
+    def _read(self):
+        """
+        Read imputed data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading imputed data from disk...")
+
+        self.output = pd.read_excel(self.current_stage_fpath / const.residuals_fname, 
+                                    parse_dates=["date"], 
+                                    sheet_name=None,
+                                    index_col="date"
+                                   )
+        self.additional_results["trends"] = pd.read_excel(self.current_stage_fpath / const.trends_fname, 
+                                                          parse_dates=["date"], 
+                                                          sheet_name=None,
+                                                          index_col="date"
+                                                         )
+        self.additional_results["p_values"] = pd.read_excel(self.current_stage_fpath / const.p_values_fname, 
+                                                            sheet_name=None,
+                                                            index_col="metric"
+                                                           )
+        self.additional_results["optimal_stl"] = pd.read_excel(self.current_stage_fpath / const.optimal_stl_info_fname, 
+                                                               sheet_name=None,
+                                                               index_col="metric"
+                                                              )
+        
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        Checks if imputed data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.xlsx")])==4)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, datadict: dict):
+        """
+        Writes resulting data from time series 
+        decomposition to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the WISE time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        with pd.ExcelWriter(dirpath / fname) as writer:
+            for name, df in datadict.items():
+                df.to_excel(writer, sheet_name=name)
+
+
+class WiseDataScaler(Processor):
+    """
+    Standardize time series data (standardization = subtract
+    mean value and scale to unit standard deviation). The
+    resulting values are thus z-scores (normally distributed).
+
+    Class attributes
+    ----------------
+    c_name : str
+        class name = "Data scaler"
+
+    c_description : str
+        ultra-short class description = "Standard scaling data"
+
+    Private methods
+    ---------------
+    _transform() -> None
+    _read() -> None
+    _save() -> None
+    _is_done() -> bool
+    """
+    c_name = "Data scaler"
+    c_description = "Standard scaling data"
+    
+    def _std_scale(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Standardized the input data.
+
+        Input data is converted into z-scores.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            Input data
+
+        Returns
+        -------
+        z_scores : pandas.DataFrame
+            Standardized data
+        """
+        # Initialize and run scaler
+        z_scaler = StandardScaler()
+        z_scores = z_scaler.fit_transform(data)
+
+        # Turn output into pandas.DataFrame
+        z_scores_df = pd.DataFrame(z_scores, index=data.index, columns=data.columns)
+        
+        return z_scores_df
+        
+    def _transform(self):
+        """
+        Perform data scaling.
+        """
+        normalized_residuals_dict = dict()
+        
+        for sheet, df in self.input.items():
+            assert df.index.name == "date"
+        
+            normalized_residuals_dict[sheet] = self._std_scale(df)
+        
+
+        # Make data available
+        self.output = normalized_residuals_dict
+        # self.additional_results["normalized_ts"] = normalized_timeseries_dict
+        
+        # Write processed data to csv files
+        self._save(const.scaled_resids_fname, normalized_residuals_dict)
+        #self._save(const.scaled_ts_fname, normalized_timeseries_dict)
+
+        print("-> done!")
+    
+    def _read(self):
+        """
+        Read imputed data from disk if available.
+        """
+        if self.verbosity > 0:
+            print("Reading imputed data from disk...")
+
+        self.output = pd.read_excel(self.current_stage_fpath / const.scaled_resids_fname, 
+                                    parse_dates=["date"],
+                                    sheet_name=None,
+                                    index_col="date"
+                                   )
+                                                       
+        #self.additional_results["scaled_time_series"] = pd.read_excel(self.current_stage_fpath / const.scaled_ts_fname,
+        #                                                              sheet_name=None,
+        #                                                              parse_dates=["date"],
+        #                                                              index_col="date"
+        #                                                             )
+
+        print("-> done!")
+
+    def _is_done(self) -> bool:
+        """
+        Checks if scaled data is already available on disk
+        or not.
+
+        Returns
+        -------
+        is_done : bool
+            True if data is available on disk. False if it
+            is not.
+        """
+        paths_exist = self.current_stage_fpath.exists()
+
+        if self.verbosity > 0:
+            print(f"paths_exist: {paths_exist}")
+        dirs_not_empty = (len([f for f in (self.current_stage_fpath).glob("*.xlsx")])>=1)
+
+        if self.verbosity > 0:
+            print(f"dirs_not_empty: {dirs_not_empty}")
+
+        is_done = paths_exist & dirs_not_empty
+        return is_done
+
+    def _save(self, fname: str, datadict: dict):
+        """
+        Writes resulting data from time series 
+        decomposition to disk.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the file the data is written to.
+
+        df : pandas.DataFrame
+            DataFrame containing the WISE time series data.
+        """
+        dirpath = self.current_stage_fpath
+        dirpath.mkdir(parents=True, exist_ok=True)
+        with pd.ExcelWriter(dirpath / fname) as writer:
+            for name, df in datadict.items():
+                df.to_excel(writer, sheet_name=name)
+
+        
 class TransformationPipeline(object):
     """
     Put all the data transformation steps into a
@@ -686,13 +984,15 @@ class TransformationPipeline(object):
         # Next define the list of data transformation
         # steps:
 
-        # Stage 1: Data consolidation
-        #          --> Takes all the time series in the JSON files
-        #              from stage-2 and consolidate them into 
-        #              pandas.DataFrames. In this step any meta
-        #              information is neglected. All metrics end
-        #              up in one DataFrame, all confidence intervals
-        #              in another.
+        # Stage 1: Data reformatting
+        #          --> Originally the data for the time series of all
+        #              countries are stored in single a long-format 
+        #              table. This data reformatting step transforms 
+        #              this single table into a dictionary of wide-
+        #              format tables where every table contains the
+        #              data of a single country only. The columns of
+        #              these tables contain the individual WISE metrics
+        #              while the rows contain the years.
         # Stage 2: Data cleaning
         #          --> Performs a number of data cleaning steps such
         #              as removal of irrelevant metrics, removal
@@ -721,7 +1021,17 @@ class TransformationPipeline(object):
                                        metatable=self.metatable,
                                        stage_id=3,
                                        verbosity=verbosity
-                                       )
+                                      ),
+                       WiseTSDecomposer(input_data=None, 
+                                        metatable=self.metatable,
+                                        stage_id=4,
+                                        verbosity=verbosity
+                                       ),
+                       WiseDataScaler(input_data=None, 
+                                      metatable=self.metatable,
+                                      stage_id=5,
+                                      verbosity=verbosity
+                                     )
                       ]
         self.n_stages = len(self.stages)
         self.verbosity = verbosity
@@ -847,7 +1157,11 @@ class TransformationPipeline(object):
         -------
         all_results : Dict[str, pd.DataFrame|List[str]]
         """
-        all_results = {"raw": self.stages[0].output
+        all_results = {"raw": self.stages[0].output,
+                       "clean": self.stages[1].output,
+                       "interpolated": self.stages[2].output,
+                       "residuals": self.stages[3].output,
+                       "normalized_residuals": self.stages[4].output
                       }
         
         for stage in self.stages:
@@ -922,87 +1236,117 @@ class TransformationPipeline(object):
              'residuals',
              'zscores']
         """
-        wise_metric_metatable = self.stages[1].additional_results["metrics_metatable"].reset_index()
-        wise_metric_metatable = wise_metric_metatable[["metric_id", "metric_name", "capital - primary"]]\
+        wise_metric_metatable = self.metatable.reset_index()
+        wise_metric_metatable = wise_metric_metatable[["acronym",
+                                                       "metric_acronym", 
+                                                       "metric_name",
+                                                       "capital - primary"
+                                                      ]]\
                                     .drop_duplicates()\
-                                    .set_index("metric_id")
+                                    .set_index("acronym")
         
         if sort_by_capital:
             wise_metric_ids_sorted_by_cap = wise_metric_metatable.sort_values(by="capital - primary")
         else:
             wise_metric_ids_sorted_by_cap = wise_metric_metatable
 
-        sorted_indices = [mid for mid in wise_metric_ids_sorted_by_cap.index if mid.endswith("_metr")]
+        sorted_indices = [acronym.lower() for acronym in wise_metric_ids_sorted_by_cap.index]
         
-        wise_data = self.stages[0].output.copy()
-        wise_data = wise_data[sorted_indices]
-        wise_data.index = pd.to_datetime(wise_data.index, format="%Y")
-        
-        
-        max_list = ['clean vs raw', 
-                    'interpolated vs clean', 
-                    'trends vs interpolated', 
-                    'residuals',
-                    'zscores']
+        for iso3, df in self.stages[0].output.items():
+            wise_data = df.copy()
 
-        if isinstance(create, str):
-            if create == 'all':
-                create = max_list
-            else:
-                raise ValueError("String-typed value of parameter 'create' must be equal to 'all'.")
-
-        for action in create:
-            if not action in max_list:
-                raise ValueError(f"Action '{action}' is not valid. Must be one or several of {max_list}.")
-
-        figsaxes = []
-        if 'clean vs raw' in create:
-            plotpath = self.stages[3].current_stage_fpath / const.clean_vs_raw_plot_fpath if write else None
-            fig, ax = plot.plot_data(wise_clean, 
-                                     title = "Clean vs raw data (clean = line, raw = diamonds)", 
-                                     meta_info = wise_metric_metatable,
-                                     scatter_df = wise_data,
-                                     fpath = plotpath
-                                    )
-            figsaxes.append((fig, ax))
-
-        if 'interpolated vs clean' in create:
-            plotpath = self.stages[4].current_stage_fpath / const.interpolated_vs_clean_plot_fpath if write else None
-            fig, ax = plot.plot_data(wise_interpolated,
-                                     title = "GP-interpolated vs clean data (interpolated = line, clean = diamonds)",
-                                     meta_info = wise_metric_metatable,
-                                     scatter_df = wise_clean,
-                                     error_df = wise_envelopes,
-                                     fpath = plotpath
-                                    )
-            figsaxes.append((fig, ax))
-
-        if 'trends vs interpolated' in create:
-            plotpath = self.stages[5].current_stage_fpath / const.trends_vs_interpolated_plot_fpath if write else None
-            fig, ax = plot.plot_data(wise_trends,
-                                     title = "Trend lines through GP-interpolated data (diamonds)",
-                                     meta_info = wise_metric_metatable,
-                                     scatter_df = wise_interpolated,
-                                     fpath = plotpath
-                                    )
-            figsaxes.append((fig, ax))
-
-        if 'residuals' in create:
-            plotpath = self.stages[5].current_stage_fpath / const.residuals_plot_fpath if write else None
-            fig, ax = plot.plot_data(wise_residuals, 
-                                     title = "Residuals after detrending GP-interpolated data",
-                                     meta_info = wise_metric_metatable,
-                                     fpath = plotpath
-                                    )
-            figsaxes.append((fig, ax))
-
-        if 'zscores' in create:
-            plotpath = self.stages[6].current_stage_fpath / const.zscores_plot_fpath if write else None
-            fig, ax = plot.plot_data(wise_zscores,
-                                     title = "Normalized residuals of detrended data",
-                                     meta_info = wise_metric_metatable,
-                                     fpath = plotpath
-                                    )
-            figsaxes.append((fig, ax))
-
-        return figsaxes
+            wise_data = wise_data[[idx for idx in sorted_indices if idx in wise_data.columns]]
+            wise_data.index = pd.to_datetime(wise_data.index.astype(str), 
+                                             format="%Y", 
+                                             errors="coerce"  # invalid years become NaT
+                                            )
+            
+            max_list = ['clean vs raw', 
+                        'interpolated vs clean', 
+                        'trends vs interpolated', 
+                        'residuals',
+                        'zscores']
+            
+            wise_clean = self.stages[1].output[iso3].copy()
+            wise_clean = wise_clean[[idx for idx in sorted_indices if idx in wise_clean.columns]]
+            wise_clean.index = pd.to_datetime(wise_clean.index.astype(str), 
+                                              format="%Y", 
+                                              errors="coerce"  # invalid years become NaT
+                                             )
+            
+            wise_interpolated = self.stages[2].output[iso3].copy()
+            wise_interpolated = wise_interpolated[[idx for idx in sorted_indices if idx in wise_interpolated.columns]]
+            wise_interpolated.index = tsa.fractional_years_to_datetime(wise_interpolated.index)
+            
+            wise_envelopes = self.stages[2].additional_results["uncertainty_envelopes"][iso3].copy()
+            wise_envelopes = wise_envelopes[[idx for idx in sorted_indices if idx in wise_envelopes.columns]]
+            wise_envelopes.index = tsa.fractional_years_to_datetime(wise_envelopes.index)
+            
+            wise_residuals = self.stages[3].output[iso3].copy()
+            wise_residuals = wise_residuals[[idx for idx in sorted_indices if idx in wise_residuals.columns]]
+            
+            wise_trends = self.stages[3].additional_results["trends"][iso3].copy()
+            wise_trends = wise_trends[[idx for idx in sorted_indices if idx in wise_trends.columns]]
+            
+            wise_zscores = self.stages[4].output[iso3].copy()
+            wise_zscores = wise_zscores[[idx for idx in sorted_indices if idx in wise_zscores.columns]]
+            
+            if isinstance(create, str):
+                if create == 'all':
+                    create = max_list
+                else:
+                    raise ValueError("String-typed value of parameter 'create' must be equal to 'all'.")
+    
+            for action in create:
+                if not action in max_list:
+                    raise ValueError(f"Action '{action}' is not valid. Must be one or several of {max_list}.")
+    
+            figsaxes = []
+            if 'clean vs raw' in create:
+                plotpath = self.stages[1].current_stage_fpath / const.clean_vs_raw_plot_fpath if write else None
+                fig, ax = plot.plot_data(wise_clean, 
+                                         title = f"{iso3}: Clean vs raw data (clean = line, raw = diamonds)", 
+                                         meta_info = wise_metric_metatable,
+                                         scatter_df = wise_data,
+                                         fpath = plotpath
+                                        )
+                figsaxes.append((fig, ax))
+    
+            if 'interpolated vs clean' in create:
+                plotpath = self.stages[2].current_stage_fpath / const.interpolated_vs_clean_plot_fpath if write else None
+                fig, ax = plot.plot_data(wise_interpolated,
+                                         title = f"{iso3}: GP-interpolated vs clean data (interpolated = line, clean = diamonds)",
+                                         meta_info = wise_metric_metatable,
+                                         scatter_df = wise_clean,
+                                         error_df = wise_envelopes,
+                                         fpath = plotpath
+                                        )
+                figsaxes.append((fig, ax))
+    
+            if 'trends vs interpolated' in create:
+                plotpath = self.stages[3].current_stage_fpath / const.trends_vs_interpolated_plot_fpath if write else None
+                fig, ax = plot.plot_data(wise_trends,
+                                         title = f"{iso3}: Trend lines through GP-interpolated data (diamonds)",
+                                         meta_info = wise_metric_metatable,
+                                         scatter_df = wise_interpolated,
+                                         fpath = plotpath
+                                        )
+                figsaxes.append((fig, ax))
+    
+            if 'residuals' in create:
+                plotpath = self.stages[3].current_stage_fpath / const.residuals_plot_fpath if write else None
+                fig, ax = plot.plot_data(wise_residuals, 
+                                         title = f"{iso3}: Residuals after detrending GP-interpolated data",
+                                         meta_info = wise_metric_metatable,
+                                         fpath = plotpath
+                                        )
+                figsaxes.append((fig, ax))
+    
+            if 'zscores' in create:
+                plotpath = self.stages[4].current_stage_fpath / const.zscores_plot_fpath if write else None
+                fig, ax = plot.plot_data(wise_zscores,
+                                         title = f"{iso3}: Normalized residuals of detrended data",
+                                         meta_info = wise_metric_metatable,
+                                         fpath = plotpath
+                                        )
+                figsaxes.append((fig, ax))

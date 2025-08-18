@@ -78,14 +78,40 @@ class WiseLoader(object):
         """
         """
         loaded_from_disk = False
+
+        # Load the meta information as provided by WISE
         try:
             metatable = pd.read_csv(const.wise_metatable_fname)
+            if "Unnamed: 0" in metatable.columns:
+                metatable = metatable.drop("Unnamed: 0", axis=1)
+
+            
             loaded_from_disk = True
         except FileNotFoundError:
-            metatable = self.wise_db["Metrics Info"]
+            metatable = self.wise_db["Metrics Info"].drop("Unnamed: 0", axis=1)
             metatable = aux.standardize_column_names(metatable)
-        
-        metatable = metatable.set_index('metric_acronym')
+
+        # Standardize column headers
+        metatable = aux.standardize_column_names(metatable)
+        metatable = metatable.set_index("acronym")
+
+        # Add in capital information
+        if "capital - primary" not in metatable.columns:
+            capitals_map = pd.read_csv(const.capmap_path)
+            if "Unnamed: 0" in capitals_map.columns:
+                capitals_map = capitals_map.drop("Unnamed: 0", axis=1)
+                
+            capitals_map = aux.standardize_column_names(capitals_map)
+            capitals_map = capitals_map[["acronym","capital - primary"]]
+            capitals_map = capitals_map.set_index("acronym")
+            
+            metatable = metatable.join(capitals_map)
+            
+        # Align meta table header and row names
+        metatable = metatable.rename({"metric_full_name": "metric_name"}, axis=1)
+        metatable.index = [ri.lower() for ri in metatable.index]
+
+        metatable.index.name="acronym"
 
         if not loaded_from_disk:
             # Save to file
