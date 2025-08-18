@@ -1237,20 +1237,20 @@ class TransformationPipeline(object):
              'zscores']
         """
         wise_metric_metatable = self.metatable.reset_index()
-        wise_metric_metatable = wise_metric_metatable[["acronym",
+        wise_metric_metatable = wise_metric_metatable[["metric_id",
                                                        "metric_acronym", 
                                                        "metric_name",
                                                        "capital - primary"
                                                       ]]\
                                     .drop_duplicates()\
-                                    .set_index("acronym")
+                                    .set_index("metric_id")
         
         if sort_by_capital:
             wise_metric_ids_sorted_by_cap = wise_metric_metatable.sort_values(by="capital - primary")
         else:
             wise_metric_ids_sorted_by_cap = wise_metric_metatable
 
-        sorted_indices = [acronym.lower() for acronym in wise_metric_ids_sorted_by_cap.index]
+        sorted_indices = [mid.lower() for mid in wise_metric_ids_sorted_by_cap.index]
         
         for iso3, df in self.stages[0].output.items():
             wise_data = df.copy()
