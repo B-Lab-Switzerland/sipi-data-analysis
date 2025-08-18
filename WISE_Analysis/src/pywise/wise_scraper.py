@@ -90,10 +90,11 @@ class WiseLoader(object):
         except FileNotFoundError:
             metatable = self.wise_db["Metrics Info"].drop("Unnamed: 0", axis=1)
             metatable = aux.standardize_column_names(metatable)
+            metatable = metatable.rename({"acronym": "metric_id"}, axis=1)
 
         # Standardize column headers
         metatable = aux.standardize_column_names(metatable)
-        metatable = metatable.set_index("acronym")
+        metatable = metatable.set_index("metric_id")
 
         # Add in capital information
         if "capital - primary" not in metatable.columns:
@@ -103,7 +104,8 @@ class WiseLoader(object):
                 
             capitals_map = aux.standardize_column_names(capitals_map)
             capitals_map = capitals_map[["acronym","capital - primary"]]
-            capitals_map = capitals_map.set_index("acronym")
+            capitals_map = capitals_map.rename({"acronym": "metric_id"}, axis=1)
+            capitals_map = capitals_map.set_index("metric_id")
             
             metatable = metatable.join(capitals_map)
             
@@ -111,7 +113,7 @@ class WiseLoader(object):
         metatable = metatable.rename({"metric_full_name": "metric_name"}, axis=1)
         metatable.index = [ri.lower() for ri in metatable.index]
 
-        metatable.index.name="acronym"
+        metatable.index.name="metric_id"
 
         if not loaded_from_disk:
             # Save to file
