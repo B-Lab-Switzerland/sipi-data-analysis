@@ -101,18 +101,24 @@ stationary_ts_fpath = tsa_dir / "stationary.xlsx"
 non_stationary_ts_fpath = tsa_dir / "non_stationary.xlsx"
 
 # (correlation analysis / corra_dir)
-non_redundant_obs_fpath = corra_dir / "non_redundant_observables.xlsx"
-pruned_metrics_fpath = corra_dir / "pruned_metrics.xlsx"
-all_corrmat_fpath = corra_dir / "corrmat_all.pdf"
-pruned_corrmat_fpath = corra_dir / "corrmat_pruned.pdf"
+all_corrmat_fpath = lambda infix: corra_dir / f"corrmat_all_{infix}.csv"
+all_corrmat_plot_fpath = lambda infix: corra_dir / f"corrmat_all_{infix}.pdf"
+metric_counts_fpath = lambda infix:corra_dir / f"n_to_keep_vs_corr_threshold_{infix}.csv"
+metric_counts_plot_fpath = lambda infix: corra_dir / f"n_nonredundant_per_threshold_{infix}.pdf"
+to_keep_fpath = lambda infix: corra_dir / f"metrics_to_keep_{infix}.xlsx"
+corr_groups_fpath = lambda infix, thstring: corra_dir / f"correlation_groups_{infix} / corr_group_th{thstring}.xlsx"
+corr_val_distribution_plot_fpath = lambda infix: corra_dir / f"corr_val_distribution_{infix}.png"
+n_retained_key_metrics_fpath = lambda infix: corra_dir / f"n_retained_key_metrics_after_pruning_{infix}.csv"
+n_retained_key_metrics_plot_fpath = lambda infix: corra_dir / f"n_retained_key_metrics_after_pruning_{infix}.png"
 
 # (performance analysis / perfa_dir)
-top3_metrics_fpath = perfa_dir / "top3_metrics.xlsx"
-bottom3_metrics_fpath = perfa_dir / "bottom3_metrics.xlsx"
-top3_metrics_per_cap_fpath = perfa_dir / "top3_metrics_per_capital.xlsx"
-bottom3_metrics_per_cap_fpath = perfa_dir / "bottom3_metrics_per_capital.xlsx"
-key_indicator_performance_fpath = perfa_dir / "key_indicator_performance_ranking.xlsx"
-n_key_indicators_per_performance_plot_fpath = perfa_dir / "n_key_indicators_per_performance_group.png"
+# - all metrics
+ranking_fpath = perfa_dir / "performance_ranking.csv"
+ranking_plot_fpath = perfa_dir / "performance_ranking_plot.png"
+slope_stats_fpath = perfa_dir / "slope_norm_stats.csv"
+slope_distro_plot_fpath = perfa_dir / "slope_norm_distribution.png"
+top_performers_fpath = perfa_dir / "top_performers.xlsx"
+bottom_performers_fpath = perfa_dir /  "worst_performers.xlsx"
 
 # ====
 # URLs

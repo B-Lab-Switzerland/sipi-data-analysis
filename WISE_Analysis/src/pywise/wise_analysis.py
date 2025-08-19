@@ -23,7 +23,7 @@ class Analyzer(ABC):
 
     Parameters
     ----------
-    data: pandas.DataFrame
+    data: dict
         Input data being analyzed. This is
         meant to be the result of a data
         transformation step defined in 
@@ -36,7 +36,7 @@ class Analyzer(ABC):
         
     Attributes
     ----------
-    input: pandas.DataFrame
+    input: dict
         See input parameter "data".
         
     metrics_meta_table : pandas.DataFrame
@@ -257,7 +257,7 @@ class nMetricsPerCapital(Analyzer):
 
     Parameters
     ----------
-    data: pandas.DataFrame
+    data: dict
         Input data being analyzed. This is
         meant to be the result of a data
         transformation step defined in 
@@ -270,7 +270,7 @@ class nMetricsPerCapital(Analyzer):
         
     Attributes
     ----------
-    input: pandas.DataFrame
+    input: dict
         See input parameter "data".
         
     metrics_meta_table : pandas.DataFrame
@@ -387,7 +387,7 @@ class nSparseMetricsPerCapital(Analyzer):
 
     Parameters
     ----------
-    data: pandas.DataFrame
+    data: dict
         Input data being analyzed. This is
         meant to be the result of a data
         transformation step defined in 
@@ -400,7 +400,7 @@ class nSparseMetricsPerCapital(Analyzer):
         
     Attributes
     ----------
-    input: pandas.DataFrame
+    input: dict
         See input parameter "data".
         
     metrics_meta_table : pandas.DataFrame
@@ -532,7 +532,7 @@ class RawDataAvailability(Analyzer):
 
     Parameters
     ----------
-    data: pandas.DataFrame
+    data: dict
         Input data being analyzed. This is
         meant to be the result of a data
         transformation step defined in 
@@ -545,7 +545,7 @@ class RawDataAvailability(Analyzer):
         
     Attributes
     ----------
-    input: pandas.DataFrame
+    input: dict
         See input parameter "data".
         
     metrics_meta_table : pandas.DataFrame
@@ -634,7 +634,7 @@ class RawDataAvailability(Analyzer):
         
         Parameters
         ----------
-        df : pandas.DataFrame
+        df : dict
             Input table considered to contain
             the measured data. It is this data
             of which the availability is being
@@ -642,7 +642,7 @@ class RawDataAvailability(Analyzer):
             
         Returns
         -------
-        trp : pandas.DataFrame
+        trp : dict
             The result trp is similar to the
             input parameter df. However, the
             dataframe is now transposed, i.e.
@@ -774,3 +774,353 @@ class RawDataAvailability(Analyzer):
             fig.suptitle(f"{iso3}: Data availability", y=0.9, fontsize=18)
             self._save_figure(fig, const.data_availability_chart_fpath, dpi=300)
             plt.show()
+
+
+class CorrleationAnalysis(Analyzer):
+    """
+    Perform all analysis steps related to 
+    cross-correlating the different metrics.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        wise_processor.py.
+
+    iso3 : str
+        ISO3 country code for the currently
+        analyzed data.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+
+    Optional Parameters
+    -------------------
+    lag: int [default: 0]
+        Lag at which the cross-correlations
+        shall be computed. When lag<0, then
+        the cross-correlations are computed
+        at all possible lags and max/min-
+        aggregated. See documentation of
+        utils.CorrelationAnalysis for more
+        details.
+    
+    threshold_vector: Iterable|None [default: None]
+        Vector of thresholds at which the
+        metric pruning shall be performed.
+        When is set to None, it will be
+        automatically set to
+        [th/100 for th in range(80,100,2)]\
+        +[0.99, 0.999]
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    lag : int
+        See input parameter "lag".
+    
+    infix = f"lag{self.lag}" if self.lag>=0 else f"aggregated"
+        Infix used to modify path names.
+        
+    th_vec : List[float]
+        See input parameter "threshold_vector"
+
+    Private Methods
+    ---------------
+    _filter_metrics_by_correlation(corranalysis_obj: utils.CorrelationAnalysis,
+                                   corrmat: pandas.DataFrame
+                                  ) -> Tuple[pandas.DataFrame,
+                                             dict[float, List[str]],
+                                             dict[float, dict[str, pandas.DataFrame]]
+                                            ]
+    _plot_number_of_redundant_metrics() -> None
+    _plot_corrval_distributions() -> None
+    _compute() -> None
+    _plot() -> None
+    
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
+    """
+    def __init__(self,
+                 data: pd.DataFrame,
+                 iso3: str,
+                 lag: int = 0,
+                 threshold_vector: Iterable|None = None
+                ):
+        super().__init__(data)
+
+        # Additional parameters
+        self.lag = lag
+        self.iso3 = iso3
+        self.infix = f"lag{self.lag}" if self.lag>=0 else f"aggregated"
+        self.infix += f"_{iso3}"
+        self.th_vec = threshold_vector
+        if self.th_vec is None:
+            self.th_vec = [th/100 for th in range(80,100,2)]+[0.99, 0.999]
+
+        # Containers
+        self.additional_results = dict()
+
+    def _filter_metrics_by_correlation(self,
+                                       corranalysis_obj: utils.CorrelationAnalysis,
+                                       corrmat: pd.DataFrame
+                                      ) -> Tuple[pd.DataFrame,
+                                                 dict[float, List[str]],
+                                                 dict[float, dict[str, pd.DataFrame]]
+                                                ]:
+        """
+        Peform metric pruning based on correlation
+        analysis.
+
+        For full information about how the pruning
+        is done, see documentation of 
+        utils.CorrelationAnalysis.
+
+        The pruning is done for each value in the
+        vector in self.th_vec.
+
+        Parameters
+        ----------
+        corranalysis_obj : utils.CorrelationAnalysis
+            CorrelationAnalysis object containing
+            required correlation analysis data.
+            
+        corrmat : pandas.DataFrame
+            Dataframe containing all pairwise 
+            correlations for each pair of metrics.
+            
+        Returns
+        -------
+        counts : pandas.DataFrame
+            DataFrame containing number
+            of retained metrics after pruning
+            for each value in self.th_vec (columns)
+            per capital (rows).
+            
+        to_keep_dict : dict[float, List[str]]
+            Lists of metrics retained after
+            pruning at threshold value th.
+            The threshold values are the keys
+            of the dictionary, the lists are
+            the values.
+        
+        corr_groups : dict[float, dict[str, pandas.DataFrame]]
+            A dictionary containing key-value pairs
+            where the key is a threshold value th
+            and the value is again a dictionary. The
+            inner dictionary contains a metric name
+            as the keys and the corresponding 
+            values (pandas.DataFrames) list all
+            the metrics which are correlated more
+            strongly than the threshold value th
+            with the metric in the key.
+        """
+        # Initialize containers
+        counts_list = []
+        to_keep_dict = dict()
+        corr_groups = dict()
+
+        # Iterate over all thresholds
+        for th in self.th_vec:
+            to_keep, corr_xlsx = corranalysis_obj.drop_strong_correlations(corrmat, 
+                                                                           threshold=th 
+                                                                           )
+
+            # Count number of kept metrics per capital
+            to_keep_meta_df = self.metrics_meta_table[self.metrics_meta_table.index.isin(to_keep)]
+            counts_per_cap = to_keep_meta_df.groupby("capital - primary")\
+                                            .agg("count")\
+                                            .rename({"metric_name": th}, axis=1)
+
+            # Notice that at this point the variables
+            # to_keep and corr_xlsx contain only metric_ids.
+            # This is not userfriendly. Therefore, we now
+            # need to translate those ids into metric
+            # names for user to be able to intuitively
+            # understand what they are looking at.
+            #to_keep_names = list(to_keep_meta_df["metric_name"].values)
+            to_keep_names = to_keep_meta_df[["metric_name"]]
+            corr_group_names = dict()
+            for mid, ser in corr_xlsx.items():
+                m_name = self.id2name_map[mid]
+                
+                named_corrgroup = ser.to_frame()\
+                                     .join(self.metrics_meta_table, 
+                                           how="inner"
+                                          )
+                named_corrgroup = named_corrgroup[["metric_name", mid]]
+                named_corrgroup = named_corrgroup.rename({mid: "correlation"}, axis=1)
+                corr_group_names[m_name] = named_corrgroup
+            
+            # Fill results into containers
+            counts_list.append(counts_per_cap[th])
+            to_keep_dict[th] = to_keep_names
+            corr_groups[th] = corr_group_names#corr_xlsx
+
+        # Create a single counts dataframe
+        counts = pd.concat(counts_list, axis=1)
+        counts.loc["Total", :] = counts.sum(axis=0) 
+
+        # Return
+        return counts, to_keep_dict, corr_groups
+        
+    def _compute(self):
+        """
+        Run the correlation analysis and use the
+        results to prune the list of WISE
+        metrics using several different correlation
+        threshold values.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        wise_ca = utils.CorrelationAnalysis(self.input)
+
+        if self.lag >= 0:
+            corrmat = wise_ca.cross_corr(lag=self.lag)
+        else:
+            corrmat = wise_ca.max_abs_corr()
+
+        counts, to_keep, corr_groups = self._filter_metrics_by_correlation(wise_ca, corrmat)
+        
+        # Make results available
+        self.output = counts
+        self.additional_results["correlation_matrix"] = corrmat
+        self.additional_results["metrics_to_keep"] = to_keep
+        self.additional_results["correlation_groups"] = corr_groups
+        
+        # Write result to disk
+        self._save_data(corrmat, const.all_corrmat_fpath(self.infix))
+        self._save_data(counts, const.metric_counts_fpath(self.infix))
+        self._save_data(to_keep, const.to_keep_fpath(self.infix))
+        for th, group in corr_groups.items():
+            thstr = str(th).replace(".","p")
+            fpath = const.corr_groups_fpath(self.infix,thstr)
+            
+            if group == {}:
+                print(f"File {fpath} would be empty --> not writing...")
+                continue
+            
+            self._save_data(group, fpath)
+
+    def _plot_number_of_redundant_metrics(self):
+        """
+        Plot the number of metrics retained
+        after pruning vs a list of different
+        correlation thresholds.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        counts_df = self.output
+        
+        fig, ax = plt.subplots(figsize=(10,4))
+        counts_df.T.plot(kind="line", ax=ax)
+        ax.set_xticks(counts_df.columns, counts_df.columns, rotation=60)
+
+        maxval = int(counts_df.max().max())
+        yticks = range(0, maxval+1, 2)
+        if len(yticks)>20:
+            yticks = range(0, maxval+4, 5)
+        if len(yticks)>20:
+            yticks = range(0, maxval+9, 10)
+            
+        ax.set_yticks(yticks, yticks)
+        ax.set_xlabel("correlation threshold")
+        ax.set_ylabel("Number of non-redundant metrics")
+        ax.set_title(f"{self.iso3}: Counting non-redundant metrics in dependency of\ncorrelation threshold")
+        ax.grid()
+        plt.tight_layout()
+        self._save_figure(fig, const.metric_counts_plot_fpath(self.infix))
+        plt.show()
+
+    def _plot_corrval_distributions(self):
+        """
+        Plot histogram of correlation values.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        fig, axs = plt.subplots(1,2, figsize=(10,4))
+        ax = axs[0]
+        sns.histplot(self.additional_results["correlation_matrix"].unstack().values, 
+                     ax=ax, 
+                     kde=True, 
+                     bins=40)
+        ax.set_title(f"{self.iso3}: Distribution of correlation values")
+        ax.set_xlabel("corr")
+        
+        ax = axs[1]
+        sns.histplot(self.additional_results["correlation_matrix"].unstack().abs().values,
+                     ax=ax,
+                     bins=20)
+        ax.set_title(f"{self.iso3}: Distribution of abs(correlation) values")
+        ax.set_xlabel("abs(corr)")
+        plt.tight_layout()
+        self._save_figure(fig, const.corr_val_distribution_plot_fpath(self.infix))
+        plt.show()
+        
+    def _plot(self):
+        """
+        Create the cross-correlation and pruning
+        visualizations.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self._plot_number_of_redundant_metrics()
+        self._plot_corrval_distributions()
