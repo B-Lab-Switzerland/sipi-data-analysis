@@ -78,18 +78,30 @@ zscores_plot_fpath = "zscores.png"
 # Result files
 # ------------
 # (data availability analysis / data_availability_dir)
+# - Number of metrics per capital
+n_metrics_per_cap_fpath = data_availability_dir / "n_metrics_per_capital.xlsx"
+n_metrics_per_cap_plot_fpath = data_availability_dir / "n_metrics_per_capital.png"
+
+# - Number of sparse metrics per capital
+sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.xlsx"
 n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
+
+# - Number of irrelevant metrics per capital
+irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.xlsx"
 n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
-data_availability_barchart_fpath = data_availability_dir / "data_availability_barchart.png"
-sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.csv"
-irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.csv"
+
+# - Number of datapoints per metric
+n_measurements_per_metrics_fpath = data_availability_dir / "n_datapoints_per_metric.xlsx"
+data_availability_map_fpath = data_availability_dir / "data_availability_map.xlsx"
+data_availability_chart_fpath = data_availability_dir / "data_availability_all.pdf"
+
 
 # (time series analysis / tsa_dir)
-stationary_ts_fpath = tsa_dir / "stationary.csv"
-non_stationary_ts_fpath = tsa_dir / "non_stationary.csv"
+stationary_ts_fpath = tsa_dir / "stationary.xlsx"
+non_stationary_ts_fpath = tsa_dir / "non_stationary.xlsx"
 
 # (correlation analysis / corra_dir)
-non_redundant_obs_fpath = corra_dir / "non_redundant_observables.csv"
+non_redundant_obs_fpath = corra_dir / "non_redundant_observables.xlsx"
 pruned_metrics_fpath = corra_dir / "pruned_metrics.xlsx"
 all_corrmat_fpath = corra_dir / "corrmat_all.pdf"
 pruned_corrmat_fpath = corra_dir / "corrmat_pruned.pdf"

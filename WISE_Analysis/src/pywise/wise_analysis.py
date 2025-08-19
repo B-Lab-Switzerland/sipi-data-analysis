@@ -102,15 +102,7 @@ class Analyzer(ABC):
         related to several different indicators.
         As for the purposes of the analysis module
         we only need metric_IDs, names, descriptions,
-        capitals, and information about whether or
-        not they are key metrics, we drop all other
-        columns.
-        The column "is_key" is aggregated as follows:
-        if a metric ID is occurring multiple times,
-        only one instance is retained and the "is_key"
-        column of that instance is True if and only
-        if at least one of all the original instances
-        had an "is_key"-value equal to True.
+        and capitals.
 
         Parameters
         ----------
@@ -123,8 +115,7 @@ class Analyzer(ABC):
             level meta-information.    
         """
         metrics_meta_table = pd.read_csv(const.wise_metatable_fname).set_index("metric_id")
-        key_indicators = [m for m in metrics_meta_table.loc[metrics_meta_table["is_key"],:].index]
-
+        
         # **REMARK**
         # Some metrics are related to more than one indicator.
         # As a result, some metrics may be repeated in the 
@@ -132,8 +123,7 @@ class Analyzer(ABC):
         # information is identical but the related indicator-
         # or observable-level information may differ. For instance
         # a given metric can be related to two different indicators
-        # and thus two different sub-SDGs, one of which is e.g. a
-        # key indicator while the other is not. Both these rows
+        # and thus two different sub-SDGs. Both these rows
         # would still have the same row index (metric ID). This
         # duplication can lead to problems down the road, i.e. we
         # need to perform a deduplication. But for this to work
@@ -144,16 +134,6 @@ class Analyzer(ABC):
                                                  "capital - primary"
                                                 ]].drop_duplicates()
 
-        # Now that the deduplication is done, we can add the
-        # "is_key" column back in. We will set the corresponding
-        # value to True if ANY of the indicators related to 
-        # a given metric is a key indicator.
-        metrics_meta_table["is_key"] = False
-        metrics_meta_table.loc[key_indicators, "is_key"] = True
-
-        # Sanity check
-        metrics_meta_table["is_key"].sum() == len(key_indicators)
-        
         return metrics_meta_table
          
     @abstractmethod
@@ -164,7 +144,7 @@ class Analyzer(ABC):
     def _plot(self, df):
         pass
 
-    def _save_data(self, data: pd.DataFrame|dict, path: Path):
+    def _save_data(self, data: dict, path: Path):
         """
         Save the data to disk at "path".
 
@@ -184,12 +164,7 @@ class Analyzer(ABC):
         Returns
         -------
         None
-        """
-        if not(isinstance(data, pd.DataFrame) or isinstance(data, dict)):
-            print("Data is neither a pandas.DataFrame nor a dictionary.")
-            print(f"Data is of type {type(data)}.")
-            return
-                  
+        """          
         if path.exists() and not(self.overwrite):
             print(f"File {path.as_posix()} already exists... not overwriting!")
         else:
@@ -197,12 +172,6 @@ class Analyzer(ABC):
             if self.overwrite:
                 print(f"Overwriting existing file {path.as_posix()}...")
             
-            if isinstance(data, pd.DataFrame):
-                assert path.as_posix().endswith(".csv")
-                print(f"Writing file {path.as_posix()}...")
-                data.to_csv(path)
-                print("-> Done!")
-                
             if isinstance(data, dict):
                 assert path.as_posix().endswith(".xlsx")
                 print(f"Writing file {path.as_posix()}...")
@@ -349,27 +318,30 @@ class nMetricsPerCapital(Analyzer):
         """
         metrics_meta_table = self.metrics_meta_table[self.metrics_meta_table.index.str.endswith("metr")]
 
-        kept_metrics = list(self.input.columns)
-        kept_metrics_df = self.metrics_meta_table.loc[self.metrics_meta_table.index.isin(kept_metrics)]
-        
-        
-        # Count the number of metrics per capital BEFORE data cleaning
-        n_metrics_per_cap_all = metrics_meta_table.groupby("capital - primary")\
-                                                  .agg({"metric_name": "count"})
-
-        # Count the number of metrics per capital AFTER data cleaning
-        kept_metrics_idx = metrics_meta_table.index.isin(kept_metrics)
-        n_metrics_per_cap_cleaned = metrics_meta_table.loc[kept_metrics_idx,:]\
-                                                      .groupby("capital - primary")\
+        n_metrics_per_cap_dict = dict()
+        for iso3, df in self.input.items():
+            kept_metrics = list(df.columns)
+            kept_metrics_df = self.metrics_meta_table.loc[self.metrics_meta_table.index.isin(kept_metrics)]
+            
+            
+            # Count the number of metrics per capital BEFORE data cleaning
+            n_metrics_per_cap_all = self.metrics_meta_table.groupby("capital - primary")\
                                                       .agg({"metric_name": "count"})
-        
-        # Join the two together into a single table
-        n_metrics_per_cap_all = n_metrics_per_cap_all.rename({"metric_name": "before cleaning"}, axis=1)
-        n_metrics_per_cap_cleaned = n_metrics_per_cap_cleaned.rename({"metric_name": "after cleaning"}, axis=1)
-        n_metrics_per_cap = n_metrics_per_cap_all.join(n_metrics_per_cap_cleaned)
+    
+            # Count the number of metrics per capital AFTER data cleaning
+            kept_metrics_idx = self.metrics_meta_table.index.isin(kept_metrics)
+            n_metrics_per_cap_cleaned = self.metrics_meta_table.loc[kept_metrics_idx,:]\
+                                                          .groupby("capital - primary")\
+                                                          .agg({"metric_name": "count"})
+            
+            # Join the two together into a single table
+            n_metrics_per_cap_all = n_metrics_per_cap_all.rename({"metric_name": "before cleaning"}, axis=1)
+            n_metrics_per_cap_cleaned = n_metrics_per_cap_cleaned.rename({"metric_name": "after cleaning"}, axis=1)
+            n_metrics_per_cap = n_metrics_per_cap_all.join(n_metrics_per_cap_cleaned)
+            n_metrics_per_cap_dict[iso3] = n_metrics_per_cap.fillna(0).astype(int)
 
         # Make results available
-        self.output = n_metrics_per_cap
+        self.output = n_metrics_per_cap_dict
         
         # Write result to disk
         self._save_data(n_metrics_per_cap, const.n_metrics_per_cap_fpath)
@@ -388,12 +360,14 @@ class nMetricsPerCapital(Analyzer):
         -------
         None
         """
-        fig, ax = plt.subplots(figsize=(7,4))
-        self.output.plot(kind="bar", ax=ax)
-        ax.grid(True)
-        ax.set_title("Number of Metrics per Capital")
-        ax.set_xticks([0,1,2,3], self.output.index, rotation=0)
-        ax.set_xlabel("Capital")
-        ax.set_ylabel("Count")
-        self._save_figure(fig, const.n_metrics_per_cap_plot_fpath)
-        plt.show()
+        for iso3, df in self.output.items():
+            fig, ax = plt.subplots(figsize=(7,4))
+            display(df)
+            df.plot(kind="bar", ax=ax)
+            ax.grid(True)
+            ax.set_title(f"{iso3}: Number of Metrics per Capital")
+            ax.set_xticks(range(len(df.index)), df.index, rotation=0)
+            ax.set_xlabel("Capital")
+            ax.set_ylabel("Count")
+            self._save_figure(fig, const.n_metrics_per_cap_plot_fpath)
+            plt.show()
