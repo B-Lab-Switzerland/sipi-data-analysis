@@ -35,6 +35,7 @@ single_country_wise_db_fpath = lambda iso3: raw_dir / f"WISE_Database/Data/WISE_
 # ----------
 capmap_path = meta_dir / "capitals_map.csv"
 wise_metatable_fname = meta_dir / "wise_metainfo_table.csv"
+trend_directions = meta_dir / "trend_directions.csv"
 
 # Log files
 # ---------

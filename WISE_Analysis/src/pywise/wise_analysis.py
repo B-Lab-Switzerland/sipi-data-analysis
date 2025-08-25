@@ -1124,3 +1124,514 @@ class CorrleationAnalysis(Analyzer):
         """
         self._plot_number_of_redundant_metrics()
         self._plot_corrval_distributions()
+
+
+class PerformanceRanker(Analyzer):
+    """
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Input data being analyzed. This is
+        meant to be the result of a data
+        transformation step defined in 
+        wise_processor.py.
+    
+    overwrite : bool
+        A flag indicating whether or not
+        results should be saved to files
+        overwriting already existing files.
+        
+    Attributes
+    ----------
+    input: pandas.DataFrame
+        See input parameter "data".
+        
+    metrics_meta_table : pandas.DataFrame
+        Table containing meta information
+        for each metric.
+        
+    id2name_map : dict
+        A dictionary mapping the metric IDs
+        to the corresponding metric names.
+        
+    capitallist = list
+        A list containing all capitals:
+        - human
+        - social
+        - natural
+        - economic
+        
+    overwrite : bool
+        See input parameter "overwrite".
+        
+    output : Any
+        Main result of the data analysis
+        step.
+        
+    additional_results : dict[str, Any]
+        A dictionary containing additional
+        results of the data analysis step.
+
+    trend_targets : pandas.DataFrame
+        Table containing the desired trend
+        for each metric as published on the
+        WWW.
+
+    Private Methods
+    ---------------
+    _get_desired_trends
+    _plot_number_of_redundant_metrics
+    _plot_corrval_distributions(corrmat)
+    _compute()
+    _plot()
+    
+    Public Methods
+    --------------
+    analyze() -> None
+        Is defined in parent ABC "Analyzer"
+    """
+    def __init__(self,
+                 data: pd.DataFrame
+                ):
+        super().__init__(data)
+        self.trend_targets = pd.read_csv(const.trend_directions).set_index("metric_id")
+        self.trend_targets.index = self.trend_targets.index.str.lower()
+        
+    def _compute_slope(self, data: pd.Series) -> Tuple[float, float]:
+        """
+        Computes the slope and the normalized
+        slope for the metric specified by
+        the metric ID "mid".
+
+        The normalized slope is equal to the
+        slope up to the sign, which depends
+        on the desired trend. If the desired
+        trend of a given metric is "down", then
+        the normlalized slope is (-1) times
+        the slope. As a result, a higher
+        normalized slope is always better
+        (while for the slope it depends on the
+        desired trend whether a higher or a 
+        lower value is better).
+
+        Parameters
+        ----------
+        mid : str
+            a metric ID
+
+        Returns
+        -------
+        slope : float
+            The actual slope of the linear
+            interpolation of the values
+            for the metric mid.
+
+        slope_norm : float
+            Normalized slope for the metric
+            mid as defined above.
+        """
+        data = data.dropna()
+        mid = data.name
+        x = [year for year in data.keys()]
+        y_norm = data.values/data.values[0]
+        slope = np.polyfit(x,y_norm,1)[0]
+            
+        if self.trend_targets.loc[mid, "desired_trend"]=="up":
+            slope_norm = slope
+        elif self.trend_targets.loc[mid, "desired_trend"]=="down":
+            slope_norm = -slope
+        else:
+            slope_norm = np.nan
+
+        return slope, slope_norm
+
+    def _best3_metrics_per_capital(self, 
+                                   rankings: pd.DataFrame, 
+                                   cap: str|None=None
+                                  ) -> pd.DataFrame:
+        """
+        Extract three top-performing metrics.
+
+        The ranking is done by normalized slope.
+        The higher the normalized slope the better.
+        Therefore, this method returns the three
+        metrics with highest normalized slopes
+        (either overall or for a specified capital).
+
+        Parameters
+        ----------
+        rankings : pandas.DataFrame
+            DataFrame containing the WISE
+            metrics ranked by their normalized
+            slopes from highest to lowest.
+
+        Optional Parameters
+        -------------------
+        cap : str [default: None]
+            A specific capital (i.e. "Social", 
+            "Human", "Natural", or "Economic").
+            If not None, the three top metrics
+            within the defined capital are returned.
+            Otherwise, the capital aspect is 
+            ignored and the top 3 metrics over 
+            all capitals are returned.
+
+        Returns
+        -------
+        top3 : pandas.DataFrame
+            A dataframe containing the three
+            top-performing metrics.
+        """
+        if cap is None:
+            top3 = rankings.head(3)
+        else:
+            top3 = rankings[rankings["capital - primary"]==cap].head(3)
+
+        return top3
+
+    def _worst3_metrics_per_capital(self, 
+                                    rankings: pd.DataFrame, 
+                                    cap: str|None=None
+                                   ) -> pd.DataFrame:
+        """
+        Extract three worst-performing metrics.
+
+        The ranking is done by normalized slope.
+        The higher the normalized slope the better.
+        Therefore, this method returns the three
+        metrics with lowest normalized slopes
+        (either overall or for a specified capital).
+
+        Parameters
+        ----------
+        rankings : pandas.DataFrame
+            DataFrame containing the WISE
+            metrics ranked by their normalized
+            slopes from highest to lowest.
+
+        Optional Parameters
+        -------------------
+        cap : str [default: None]
+            A specific capital (i.e. "Social", 
+            "Human", "Natural", or "Economic").
+            If not None, the three worst metrics
+            within the defined capital are returned.
+            Otherwise, the capital aspect is 
+            ignored and the three worst metrics
+            over all capitals are returned.
+
+        Returns
+        -------
+        bottom3 : pandas.DataFrame
+            A dataframe containing the three
+            worst-performing metrics.
+        """
+        if cap is None:
+            bottom3 = rankings.tail(3)
+        else:
+            bottom3 = rankings[rankings["capital - primary"]==cap].tail(3)
+
+        return bottom3
+
+    def rank_metrics(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Compute the ranking of the WISE
+        metrics based on their normalized
+        slope. See documentation of 
+        "_compute_slope" for more information.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        ranking : pandas.DataFrame
+            DataFrame containing the WISE
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        slope_norm_stats : pandas.DataFrame
+            DataFrame containing summary statistics
+            of the normalizes slopes per capital.
+        """
+        # Get a table with all metrics including their name and desired_trend and 
+        # prepare two columns for slope information: slope and slope_norm        
+        ranking = self.trend_targets.copy()
+        ranking[["slope", "slope_norm"]] = None
+
+        # Fill in the slope and slope_norm columns
+
+        # REMARK: slope_norm is introduced the put all metrics
+        # on a common scale. Depending on the desired_trend, for
+        # some metrics a higher (i.e. more positive) slope is 
+        # better, for other metrics a lower (i.e. more negative)
+        # slope is better. The column slope_norm simplifies this
+        # as a higher (more positive) slope_norm is always better.
+
+        for mid in df.columns:
+            slope, slope_norm = self._compute_slope(df[mid])
+            
+            ranking.loc[mid, "slope"] = slope
+            ranking.loc[mid, "slope_norm"] = slope_norm
+                            
+        ranking = ranking.join(self.metrics_meta_table[["capital - primary"]])
+        ranking = ranking.dropna(subset="slope_norm").sort_values(by="slope_norm", ascending=False)
+
+        # Get summary statistics about the slope_norm
+        slope_norm_stats = ranking.groupby("capital - primary")\
+                                  .agg({"slope_norm": ["mean", "median", "std"]})
+        
+        return ranking, slope_norm_stats
+
+    def get_top3(self, ranking: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        Compute the three top-performing metrics
+        for each capital and overall. Also, combine
+        the top-performing metrics of per capital
+        into a combined view.
+
+        Parameters
+        ----------
+        ranking : pandas.DataFrame
+            DataFrame containing the WISE
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        Returns
+        -------
+        top3 : Dict[str, pd.DataFrame]
+            A dict containing the three top-performing
+            metrics for each of the four capitals as
+            well as over all the capitals.
+        """
+        # Best performers
+        top3 = dict()
+        top3["overall"] = self._best3_metrics_per_capital(ranking)
+        for cap in self.capitallist:
+            top3[cap] = self._best3_metrics_per_capital(ranking, cap=cap)
+
+        top3["combined"] = pd.concat([top3[cap] for cap in self.capitallist])
+
+        return top3 
+            
+    def get_bottom3(self, ranking: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        Compute the three worst-performing metrics
+        for each capital and overall. Also, combine
+        the top-performing metrics of per capital
+        into a combined view.
+
+        Parameters
+        ----------
+        ranking : pandas.DataFrame
+            DataFrame containing the WISE
+            metrics ranked by their normalized
+            slope (from highest to lowest).
+
+        Returns
+        -------
+        top3 : Dict[str, pd.DataFrame]
+            A dict containing the three worst-performing
+            metrics for each of the four capitals as
+            well as over all the capitals.
+        """
+        # Worst performers
+        bottom3 = dict()
+        bottom3["overall"] = self._worst3_metrics_per_capital(ranking)
+        for cap in self.capitallist:
+            bottom3[cap] = self._worst3_metrics_per_capital(ranking, cap=cap)
+
+        bottom3["combined"] = pd.concat([bottom3[cap] for cap in self.capitallist])
+
+        return bottom3
+
+    def _compute(self):
+        """
+        Compute the ranking of all WISE metrics
+        based on their normalized slope and extract
+        the top and worst performing metrics based
+        on this ranking. Also, extract some summary
+        statistics about the normalized slopes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        ranking_dict = dict()
+        slope_stats_dict = dict()
+        best_dict = dict()
+        worst_dict = dict()
+
+        for iso3, df in self.input.items():
+            ranking, slope_stats = self.rank_metrics(df)
+            best = self.get_top3(ranking)
+            worst = self.get_bottom3(ranking)
+
+            ranking_dict[iso3] = ranking
+            slope_stats_dict[iso3] = slope_stats
+            best_dict[iso3] = best
+            worst_dict[iso3] = worst
+
+        # Make results available
+        self.output = ranking_dict
+        self.additional_results["normalized_slope_statistics"] = slope_stats_dict
+        self.additional_results["top_performers"] = best_dict
+        self.additional_results["bottom_performers"] = worst_dict
+
+        # Write result to disk
+        self._save_data(ranking, const.ranking_fpath)
+        self._save_data(slope_stats, const.slope_stats_fpath)
+        self._save_data(best, const.top_performers_fpath)
+        self._save_data(worst, const.bottom_performers_fpath)
+
+    def _plot_ranking_distributions(self):
+        """
+        Create box plot showing distribution of
+        normalized slopes per capital.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        def lower_bound(x: pd.Series, k: int=1.5, data=False) -> int:
+            q1 = np.percentile(x, 25)
+            q3 = np.percentile(x, 75)
+            iqr = q3 - q1
+            lower_bound = q1 - k * iqr
+            
+            if data:
+            # seaborn takes the extreme data points within this range
+                lower_whisker = x[x >= lower_bound].min()
+                return lower_whisker
+            
+            return lower_bound
+
+        def upper_bound(x: pd.Series, k: int=1.5, data=False) -> int:
+            q1 = np.percentile(x, 25)
+            q3 = np.percentile(x, 75)
+            iqr = q3 - q1
+            upper_bound = q3 + k * iqr
+
+            if data:
+            # seaborn takes the extreme data points within this range
+                upper_whisker = x[x <= upper_bound].max()
+                return upper_whisker
+
+            return upper_bound
+
+        for iso3, df in self.output.items():
+
+            bounds = df.groupby("capital - primary")\
+                       .agg(lower=pd.NamedAgg(column="slope_norm", 
+                                            aggfunc=lambda x: lower_bound(x, k=3)),
+                            upper=pd.NamedAgg(column="slope_norm", 
+                                            aggfunc=lambda x: upper_bound(x, k=3))
+                           )
+
+            min_bound = bounds["lower"].min()
+            max_bound = bounds["upper"].max()
+
+            height = max_bound - min_bound
+
+            y_max = 0.6 * height
+            y_min = -0.6 * height
+            
+            fig, ax = plt.subplots(figsize=(10,3))
+            sns.boxplot(data=df, x="capital - primary", y="slope_norm", ax=ax)
+            ax.grid(True)
+
+            upper_extreme_found = False
+            lower_extreme_found = False
+            for capidx, capgroup in df.groupby("capital - primary"):
+                capmax = capgroup.agg({"slope_norm": "max"}).values
+                capmin = capgroup.agg({"slope_norm": "min"}).values
+                if capmax > y_max:
+                    upper_extreme_found = True
+                    ax.scatter([capidx],[0.98*y_max], marker="^", color="red")
+                if capmin < y_min:
+                    lower_extreme_found = True
+                    ax.scatter([capidx],[0.98*y_min], marker="v", color="red")
+
+            if upper_extreme_found:
+                ax.scatter([capidx],[2*y_max], marker="^", color="red", label="direction of extreme large/high outliers")
+            if lower_extreme_found:
+                ax.scatter([capidx],[2*y_min], marker="v", color="red", label="direction of extreme small/low outliers")
+
+            ax.legend(loc="best")
+            ax.set_ylim([y_min, y_max])
+            ax.set_title(f"{iso3}: Distribution of normalized slopes per capital")
+            self._save_figure(fig, const.slope_distro_plot_fpath)
+            plt.show()
+
+    def _plot_metrics_performance_ranking(self):
+        """
+        Create horizontal bar chart showing the
+        normalized slopes for each metric in 
+        decreasing order.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        for iso3, df in self.output.items():    
+            fig, ax = plt.subplots(figsize=(15,30))
+            # Reset index for plotting
+            df_plot = df.reset_index()
+            # Use a numeric x axis to avoid categorical spacing issues
+            df_plot["y_pos"] = range(len(df_plot))
+                
+            # Plot bars
+            sns.barplot(
+                data=df_plot,
+                x="slope_norm", y="y_pos", hue="capital - primary",
+                dodge=False,  # Keep all hues at the same x-position
+                orient="horizontal",
+                ax=ax,
+                legend=True
+            )
+            
+            # Optional: show fewer x-ticks
+            yticks = df_plot["y_pos"]
+            ylabels = df_plot["metric_name"]
+            ax.set_yticks(yticks)
+            ax.set_yticklabels(ylabels, fontsize=8)
+            
+            # Labels and title
+            ax.set_xlabel("normalized slope (higher = better)")
+            ax.set_ylabel("metric names")
+            ax.set_title(f"{iso3}: Ranking of evolution over time of WISE metrics")
+            ax.grid(True)
+            
+            plt.tight_layout()
+            self._save_figure(fig, const.ranking_plot_fpath)
+            plt.show()
+
+    def _plot(self):
+        """
+        Create the ranking plot (horizontal
+        bar chart) and the box plot for the
+        normalized statistics.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self._plot_ranking_distributions()
+        self._plot_metrics_performance_ranking() 
