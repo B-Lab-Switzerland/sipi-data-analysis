@@ -72,7 +72,8 @@ def raw_data_availability_barchart(df: pd.DataFrame,
         dodge=False,  # Keep all hues at the same x-position
         orient="horizontal",
         ax=ax,
-        legend=show_legend
+        legend=show_legend,
+        palette=capital_to_color 
     )
     
     # Shaded region
@@ -154,18 +155,22 @@ def visualize_data_availability_colored(df: pd.DataFrame,
     # Apply to each row
     colmatr = colmatr.apply(replace_with_color, axis=1)
     colmatr = colmatr.drop("capital", axis=1)
-    colmatr.columns = pd.to_datetime(colmatr.columns, format="%Y")
+    colmatr.columns = pd.to_datetime(colmatr.columns, format="%Y", errors="coerce")    
     n_rows = len(colmatr.index)
     
     rgb_array = np.array([[tuple(val) for val in row] for row in colmatr.values])
 
     # Plot the colored "mask"
-    years = [dt.year for dt in colmatr.columns]
+    years = [dt.year for dt in colmatr.columns if dt==dt]
     xmin = years[0]
     xmax = years[-1] + 1
     ymin = len(colmatr)
     ymax = 0
-    ax.imshow(rgb_array, aspect='auto', extent=[xmin, xmax, n_rows - 0.5, -0.5 ])
+    ax.imshow(rgb_array, 
+              aspect='auto', 
+              extent=[xmin, xmax, n_rows - 0.5, -0.5 ],
+              interpolation='nearest'
+             )
 
     # Add grid and ticks
     # Optional: show fewer x-ticks
@@ -183,8 +188,9 @@ def visualize_data_availability_colored(df: pd.DataFrame,
     ax.set_title(title)
 
     # Add legend
+    present_capitals = set(df["capital"].values)
     handles = [plt.Line2D([0], [0], marker='s', color=color, linestyle='') 
-               for color in capital_to_color.values()]
+               for cap, color in capital_to_color.items() if cap in present_capitals]
     labels = list(capital_to_color.keys())
     ax.legend(handles, labels, title="Capital", loc='lower left', fontsize=8)
 

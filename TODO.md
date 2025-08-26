@@ -24,7 +24,7 @@ project.
 - [ ] Augment/enhance/improve importance analysis of MONET metrics  
   - [ ] Compute summary statistics for each time series (mean, std, IQR, etc.)
   - [ ] Check if time series can be clustered (cluster analysis, T-SNE, hierarchical clustering, etc.)
-- [ ] Re-align the WISE analysis with the MONET analysis
+
 
 
 ### In Progress
@@ -44,3 +44,4 @@ project.
   - [x] Perform correlation analysis (monochronic/0 lag and diachronic)
   - [x] Create plots for visual inspection of data transformation pipeline
   - [x] Data availability analysis
+- [x] Re-align the WISE analysis with the MONET analysis

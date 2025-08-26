@@ -11,3 +11,15 @@ def standardize_column_names(df):
                   )
     
     return df
+
+def pretty_print(dfdict):
+    """
+    Create pretty printout of a
+    dictionary with pd.DataFrames
+    as values.
+    """
+    for k, v in dfdict.items():
+        print(k + ":")
+        print("-"*(len(k)+1))
+        display(v)
+        print()

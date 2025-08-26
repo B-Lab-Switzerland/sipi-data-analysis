@@ -658,13 +658,13 @@ class WiseTSDecomposer(Processor):
         
         # Make data available
         self.output = residuals_dict
-        self.additional_results["trend"] = trend_dict
+        self.additional_results["trends"] = trend_dict
         self.additional_results["optimal_stls"] = slt_dict
         self.additional_results["pvalues_df"] = pvalues_dict
 
         # Write processed data to csv files
         self._save(const.residuals_fname, self.output)
-        self._save(const.trends_fname, self.additional_results["trend"])
+        self._save(const.trends_fname, self.additional_results["trends"])
         self._save(const.optimal_stl_info_fname, self.additional_results["optimal_stls"])
         self._save(const.p_values_fname, self.additional_results["pvalues_df"])
 
