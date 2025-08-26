@@ -26,3 +26,5 @@ OLD&DEPRICATED
 # Heavy but easily recreated data files
 WISE_Analysis/data/raw/WISE_Database/Data
 
+# Documentation builds
+*/docs/_build
