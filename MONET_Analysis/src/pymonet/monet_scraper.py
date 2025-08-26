@@ -477,7 +477,7 @@ class DataFileLoader(object):
             # write data to file
             # ==================
             # define file name root
-            file_name_root = f"m2030ind_damid_{str(row["dam_id"]).zfill(8)}"
+            file_name_root = f"m2030ind_damid_{str(row['dam_id']).zfill(8)}"
 
             # Write raw data to file
             self.raw_fpath.mkdir(parents=True, exist_ok=True)

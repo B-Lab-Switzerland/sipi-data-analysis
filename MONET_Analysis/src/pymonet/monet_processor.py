@@ -607,7 +607,7 @@ class Stage2(Processor):
         """
         # Map metric IDs to corresponding metric names
         id2name_map = pd.DataFrame([{"metric_id": od["metric_id"], 
-                                     "metric_name": f"{od["observable"]} [{od["data"].columns[0]}]", 
+                                     "metric_name": f"{od['observable']} [{od['data'].columns[0]}]", 
                                      "metric_description": od["description"]
                                     } for od in json_dict
                                    ]
