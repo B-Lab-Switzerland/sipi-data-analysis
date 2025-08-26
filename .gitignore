@@ -8,6 +8,13 @@
 *egg*
 *build*
 
+# WISE Data (would flood the git - can be re-downloaded if needed)
+Country\ Info
+Input\ Data
+Metrics\ Info
+Source\ Data
+Technical\ Validation
+
 # Manually created files
 */**/notebooks/old_depricated/
 */**/*.numbers
