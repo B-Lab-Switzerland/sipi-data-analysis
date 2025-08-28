@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../src'))
 sys.path.insert(1, os.path.abspath('../../'))
 # Configuration file for the Sphinx documentation builder.
@@ -35,6 +36,12 @@ language = 'en'
 # numpydoc configuration
 numpydoc_show_class_members = False   # avoid duplicate methods listing
 numpydoc_class_members_toctree = False
+
+autodoc_mock_imports = [
+    "playwright",
+    "sklearn",
+	"statsmodels",
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
