@@ -490,7 +490,7 @@ class DataFileLoader(object):
 
             # Collect logging info
             raw_hash = aux.xlsx_hasher(elt_df.raw_spreadsheet)
-            raw_log["file_id"].append(f"{row["dam_id"]}_r")
+            raw_log["file_id"].append(f"{row['dam_id"]}_r")
             raw_log["file_name"].append(file_name_root+".xlsx")
             raw_log["file_hash"].append(raw_hash)
             raw_log["dam_id"].append(row["dam_id"])

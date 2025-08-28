@@ -621,7 +621,7 @@ class Stage2(Processor):
         id2name_map = id2name_map.drop(["dam_id"], axis=1)
 
         if set([mid for mid in id2name_map["metric_id"]])!=metric_ids:
-            raise ValueError(f"A metric ID was removed from id2name_map. It is missing the following IDs: {metric_ids-set([mid for mid in id2name_map["metric_id"]])}.")
+            raise ValueError(f"A metric ID was removed from id2name_map. It is missing the following IDs: {metric_ids-set([mid for mid in id2name_map['metric_id']])}.")
         if not(id2name_map["capital - primary"].isna().any()):
             raise ValueError("There are still NULL capiitals in the id2name_map.")
 
@@ -713,11 +713,11 @@ class Stage2(Processor):
                 serializable_metric = {k: aux.serialize_value(v) for k, v in metric_dict.items()}
 
                 # Write processed data to json file
-                fname = f"m2030ind_damid_{metric_dict["metric_id"]}.json"
+                fname = f"m2030ind_damid_{metric_dict['metric_id']}.json"
                 self._save(fname, serializable_metric)
 
                 processed_hash = aux.json_hasher(json.dumps(serializable_metric))
-                processed_s2_log.update({"file_id": f"{metric_dict["metric_id"]}",
+                processed_s2_log.update({"file_id": f"{metric_dict['metric_id']}",
                                          "file_name": fname, 
                                          "file_hash": processed_hash, 
                                          "dam_id": stage1["dam_id"], 
@@ -741,12 +741,12 @@ class Stage2(Processor):
                 serializable_ci = {k: aux.serialize_value(v) for k, v in ci_dict.items()}
 
                 # Write processed data to json file
-                fname = f"m2030ind_damid_{ci_dict["metric_id"]}.json"
+                fname = f"m2030ind_damid_{ci_dict['metric_id']}.json"
                 self._save(fname, serializable_ci)
 
                 # Collect logging info
                 processed_hash = aux.json_hasher(json.dumps(serializable_ci))
-                processed_s2_log.update({"file_id": f"{ci_dict["metric_id"]}",
+                processed_s2_log.update({"file_id": f"{ci_dict['metric_id']}",
                                          "file_name": fname, 
                                          "file_hash": processed_hash, 
                                          "dam_id": stage1["dam_id"], 
