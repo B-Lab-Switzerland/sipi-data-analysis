@@ -85,12 +85,12 @@ class WisePaths(object):
         self.n_metrics_per_cap_plot_fpath = self.data_availability_dir / "n_metrics_per_capital.png"
         
         # - Number of sparse metrics per capital
-        self.sparse_metrics_analysis_fpath = self.data_availability_dir / "sparse_metrics.xlsx"
-        self.n_sparse_by_capital_plot_fpath = self.data_availability_dir / "n_sparse_metrics_by_capital.png"
+        self.sparse_metrics_analysis_fpath = self.data_availability_dir / "n_sparse_metrics_per_capital.xlsx"
+        self.n_sparse_by_capital_plot_fpath = self.data_availability_dir / "n_sparse_metrics_per_capital.png"
         
         # - Number of irrelevant metrics per capital
-        self.irrelevant_metrics_analysis_fpath = self.data_availability_dir / "irrelevant_metrics.xlsx"
-        self.n_irrelevant_by_capital_plot_fpath = self.data_availability_dir / "n_irrelevant_metrics_by_capital.png"
+        self.irrelevant_metrics_analysis_fpath = self.data_availability_dir / "n_irrelevant_metrics_per_capital.xlsx"
+        self.n_irrelevant_by_capital_plot_fpath = self.data_availability_dir / "n_irrelevant_metrics_per_capital.png"
         
         # - Number of datapoints per metric
         self.n_measurements_per_metrics_fpath = self.data_availability_dir / "n_datapoints_per_metric.xlsx"

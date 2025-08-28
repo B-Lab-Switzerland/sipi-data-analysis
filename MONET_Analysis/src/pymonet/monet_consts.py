@@ -89,12 +89,12 @@ n_metrics_per_cap_fpath = data_availability_dir / "n_metrics_per_capital.csv"
 n_metrics_per_cap_plot_fpath = data_availability_dir / "n_metrics_per_capital.png"
 
 # - Number of sparse metrics per capital
-sparse_metrics_analysis_fpath = data_availability_dir / "sparse_metrics.csv"
-n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_by_capital.png"
+sparse_metrics_analysis_fpath = data_availability_dir / "n_sparse_metrics_per_capital.csv"
+n_sparse_by_capital_plot_fpath = data_availability_dir / "n_sparse_metrics_per_capital.png"
 
 # - Number of irrelevant metrics per capital
-irrelevant_metrics_analysis_fpath = data_availability_dir / "irrelevant_metrics.csv"
-n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_by_capital.png"
+irrelevant_metrics_analysis_fpath = data_availability_dir / "n_irrelevant_metrics_per_capital.csv"
+n_irrelevant_by_capital_plot_fpath = data_availability_dir / "n_irrelevant_metrics_per_capital.png"
 
 # - Number of datapoints per metric
 n_measurements_per_metrics_fpath = data_availability_dir / "n_datapoints_per_metric.csv"
