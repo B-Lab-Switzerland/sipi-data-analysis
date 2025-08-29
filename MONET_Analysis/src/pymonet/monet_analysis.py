@@ -651,12 +651,6 @@ class RawDataAvailability(Analyzer):
     natural or economic) a specific metric
     belongs.
 
-    ** IMPORTANT **
-    While this class still inherits from the
-    Analyzer class, the analyze method is
-    overwritten to pass two different
-    pandas.DataFrames to the _plot routine.
-
     Child of ABC "Analyzer".
 
     Parameters
