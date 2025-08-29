@@ -30,14 +30,17 @@ In order to simply run the pipeline as a user, follow these steps:
 2. Open the main jupyter notebooks (i.e. monet_data_analysis.ipynb or wise_data_analysis.ipynb) 
 3. Make sure to set all the parameters governing (over)writing files as per your requirements. See help/docstrings for all the functions and classes if needed.
 4. Run all cells.
-5.Verify outputs.
+5. Verify outputs.
 
 ### How to stop running your docker
 1. In your command line, run `docker ps` to list all running docker containers. Copy the hash value in the NAME column of the container you want to stop.
 2. Execute `docker stop [hash-value]` in your command line.
 
 ## Developer Guide
-Please read chapter 5 of the PDF document "Documentation_SIPI_Data_Analysis_For_EPS.pdf".
+For information on how to augment, extend and build on the existing code base, please read chapter 5 of the PDF document "Documentation_SIPI_Data_Analysis_For_EPS.pdf".
+
+## Contribution Guide
+
 
 ## References & Credits
 We do not have ownership of the raw data used in this project. The WISE data is publically accessible [here](https://springernature.figshare.com/articles/dataset/A_comprehensive_Beyond-GDP_database_to_accelerate_wellbeing_inclusion_and_sustainability_research/26970415?file=49085821) and credits go to Liu, Wang, Behrens, et al. (see Liu, Kedi; Wang, Ranran; Behrens, Paul; Schrijver, Inge; Jansen, Annegeke; Rum, Irlan; et al. (2024). A comprehensive Beyond-GDP database to accelerate wellbeing, inclusion, and sustainability research. figshare. Dataset. [DOI](https://doi.org/10.6084/m9.figshare.26970415.v1)). The MONET2030 data from the Swiss Federal Statistical Office can be openly accessed [here](https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html).
