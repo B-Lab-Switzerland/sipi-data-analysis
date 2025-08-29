@@ -22,7 +22,7 @@ The dockerfile exposes jupyter lab to the port 8888. Therefore, you can launch j
 
 from inside the sipi-data-analysis project folder. In your command line/terminal you should now see jupyter running. In order to open jupyter lab in your browser just copy-paste the URL including the access token to a new browser tab.
 
-REMARK: Make sure you include the "-v $(pwd):/analysis_app" flag as otherwise any modifcations made in the jupyter notebook won't be visible from outside the docker container. As a result, you won't be able to easily use Git to track your edits. Including this flag will mounts the current host directory (i.e. "$(pwd)") to the container path "/analysis_app", so all the changes inside the Docker container will be saved directly to your real local file system.
+REMARK: Make sure you include the ```-v $(pwd):/analysis_app``` flag as otherwise any modifcations made in the jupyter notebook won't be visible from outside the docker container. As a result, you won't be able to easily use Git to track your edits. Including this flag will mounts the current host directory (i.e. "$(pwd)") to the container path "/analysis_app", so all the changes inside the Docker container will be saved directly to your real local file system.
 
 ### How to stop running your docker
 1. In your command line, run `docker ps` to list all running docker containers. Copy the hash value in the NAME column of the container you want to stop.
