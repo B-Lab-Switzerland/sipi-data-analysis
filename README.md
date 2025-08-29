@@ -41,6 +41,14 @@ For information on how to augment, extend and build on the existing code base, p
 
 ## Contribution Guide
 
+1. Fork the repository.
+2. Switch to the dev branch `git checkout dev`.
+3. Create a new branch: `git checkout -b feature/my-feature`.
+4. Commit changes and push: `git push origin feature/my-feature`.
+5. Open a Pull Request (PR) to `dev`.
+6. At least one reviewer must approve before merging.
+
+Please keep `dev` stable — all work should go through PRs. **Do NOT interact with the `main` branch at any time.**
 
 ## References & Credits
 We do not have ownership of the raw data used in this project. The WISE data is publically accessible [here](https://springernature.figshare.com/articles/dataset/A_comprehensive_Beyond-GDP_database_to_accelerate_wellbeing_inclusion_and_sustainability_research/26970415?file=49085821) and credits go to Liu, Wang, Behrens, et al. (see Liu, Kedi; Wang, Ranran; Behrens, Paul; Schrijver, Inge; Jansen, Annegeke; Rum, Irlan; et al. (2024). A comprehensive Beyond-GDP database to accelerate wellbeing, inclusion, and sustainability research. figshare. Dataset. [DOI](https://doi.org/10.6084/m9.figshare.26970415.v1)). The MONET2030 data from the Swiss Federal Statistical Office can be openly accessed [here](https://www.bfs.admin.ch/bfs/en/home/statistics/sustainable-development/monet-2030/all-indicators.html).
