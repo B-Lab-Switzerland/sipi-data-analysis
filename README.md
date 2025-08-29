@@ -26,7 +26,7 @@ REMARK: Make sure you include the ```-v $(pwd):/analysis_app``` flag as otherwis
 ### How to run the Analysis Pipeline in the Main Jupyter Notebooks.
 In order to simply run the pipeline as a user, follow these steps:
 
-1. Start Docker + Jupyter (see instructions above)
+1. Start Docker + Jupyter (see instructions above).
 2. Open the main jupyter notebooks (i.e. monet_data_analysis.ipynb or wise_data_analysis.ipynb) 
 3. Make sure to set all the parameters governing (over)writing files as per your requirements. See help/docstrings for all the functions and classes if needed.
 4. Run all cells.
